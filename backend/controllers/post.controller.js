@@ -1,0 +1,534 @@
+import Post from "../models/post.model.js";
+import Comment from "../models/comment.model.js";
+import mongoose from "mongoose";
+
+export const createPost = async (req, res) => {
+  try {
+    const { title, content, tags } = req.body;
+
+    if (!title || title.trim() === "") {
+      return res.status(400).json({
+        message: "Title is required",
+      });
+    }
+
+    if (!tags || tags.length > 10) {
+      return res.status(400).json({
+        message: "Tags condition not satisfied",
+      });
+    }
+    const newPost = new Post({
+      title,
+      author: req.user._id,
+      content,
+      tags,
+    });
+
+    const savedPost = await newPost.save();
+
+    const populatedPost = await Post.findById(savedPost._id).populate(
+      "author",
+      "username profilePic"
+    );
+    console.log(populatedPost);
+
+    res.status(201).json({
+      message: "Post created successfully",
+      post: populatedPost,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const deletePost = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+
+    if (!postId) {
+      return res.status(400).json({
+        message: "Post id not given",
+      });
+    }
+    if (!mongoose.isValidObjectId(postId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    if (req.user._id.toString() !== post.author.toString()) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+    console.log(post);
+
+    await Comment.deleteMany({ parentPost: postId });
+    await Post.findByIdAndDelete(postId);
+
+    res.status(200).json({
+      message: "Post deleted successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const updatePost = async (req, res) => {
+  try {
+    const { title, content } = req.body;
+
+    const postId = req.params.postId;
+
+    if (!postId) {
+      return res.status(400).json({
+        message: "Post id not given",
+      });
+    }
+    if (!mongoose.isValidObjectId(postId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    if (req.user._id.toString() !== post.author.toString()) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+
+    const updatePost = await Post.findByIdAndUpdate(
+      postId,
+      { title, content },
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: "Post updated successfully",
+      post: updatePost,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const getPost = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+
+    if (!postId) {
+      return res.status(400).json({
+        message: "Post id not given",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(postId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const post = await Post.findById(postId)
+      .populate("author", "username profilePic")
+      .populate({
+        path: "comments",
+        select: "commentContent commenter",
+        populate: {
+          path: "commenter",
+          select: "username profilePic",
+        },
+      });
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Post fetched successfully",
+      post,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const getAllPostsbyUser = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+
+    if (!userId) {
+      return res.status(400).json({
+        message: "User id not given",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const posts = await Post.find({ author: userId })
+      .populate("author", "username profilePic")
+      .populate({
+        path: "comments",
+        select: "commentContent commenter",
+        populate: {
+          path: "commenter",
+          select: "username profilePic",
+        },
+      });
+
+    if (!posts) {
+      return res.status(404).json({
+        message: "Posts not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Posts fetched successfully",
+      posts,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const getAllPosts = async (req, res) => {
+  try {
+    const posts = await Post.find()
+      .populate("author", "username profilePic")
+      .populate({
+        path: "comments",
+        select: "commentContent commenter",
+        populate: {
+          path: "commenter",
+          select: "username profilePic",
+        },
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      message: "Posts fetched successfully",
+      posts,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const getSearchResult = async (req, res) => {
+  try {
+    const tagQuery = req.query.tag;
+
+    if (!tagQuery) {
+      return res.status(400).json({
+        message: "Tag not given",
+      });
+    }
+
+    const tags = tagQuery.split(/\s+/); // group pe photo hai wo dekho
+
+    const regexSearch = tags.map((tag) => ({
+      tags: { $regex: tag, $options: "i" },
+    }));
+
+    const posts = await Post.find({
+      $and: regexSearch,
+    }).populate("author", "username profilePic");
+
+    if (!posts) {
+      return res.status(404).json({
+        message: "Posts not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Posts fetched successfully",
+      posts,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const upvotePost = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+    const userId = req.user._id;
+
+    if (!postId) {
+      return res.status(400).json({
+        message: "Post id not given",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(postId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    if (post.upvote.includes(userId)) {
+      return res.status(400).json({
+        message: "You have already upvoted this post",
+      });
+    }
+
+    post.upvote.push(userId);
+    if (post.downvote.includes(userId)) {
+      post.downvote.pull(userId);
+    }
+    await post.save();
+
+    res.status(200).json({
+      message: "Post upvoted successfully",
+      post,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const deleteUpvote = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+    const userId = req.user._id;
+
+    if (!postId) {
+      return res.status(400).json({
+        message: "Post id not given",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(postId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    if (!post.upvote.includes(userId)) {
+      return res.status(400).json({
+        message: "You have not upvoted this post",
+      });
+    }
+
+    post.upvote.pull(userId);
+    await post.save();
+
+    res.status(200).json({
+      message: "Post upvote deleted successfully",
+      post,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const downvotePost = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+    const userId = req.user._id;
+
+    if (!postId) {
+      return res.status(400).json({
+        message: "Post id not given",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(postId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    if (post.downvote.includes(userId)) {
+      return res.status(400).json({
+        message: "You have already downvoted this post",
+      });
+    }
+
+    post.downvote.push(userId);
+    if (post.upvote.includes(userId)) {
+      post.upvote.pull(userId);
+    }
+    await post.save();
+
+    res.status(200).json({
+      message: "Post downvoted successfully",
+      post,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const deleteDownvote = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+    const userId = req.user._id;
+
+    if (!postId) {
+      return res.status(400).json({
+        message: "Post id not given",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(postId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    if (!post.downvote.includes(userId)) {
+      return res.status(400).json({
+        message: "You have not downvoted this post",
+      });
+    }
+
+    post.downvote.pull(userId);
+    await post.save();
+
+    res.status(200).json({
+      message: "Post downvote deleted successfully",
+      post,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const upvoteCount = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+
+    if (!postId) {
+      return res.status(400).json({
+        message: "Post id not given",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(postId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    const upvoteCount = post.upvote.length;
+
+    res.status(200).json({
+      upvoteCount,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const downvoteCount = async (req, res) => {
+  try {
+    const postId = req.params.postId;
+
+    if (!postId) {
+      return res.status(400).json({
+        message: "Post id not given",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(postId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    const downvoteCount = post.downvote.length;
+
+    res.status(200).json({
+      downvoteCount,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
