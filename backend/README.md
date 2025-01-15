@@ -1,5 +1,20 @@
 # Backend Documentation
 
+<style>
+  h1, h2, h3 {
+    color: #4A90E2;
+  }
+  p, li {
+    color: #333333;
+  }
+  code {
+    color: #D0021B;
+    background-color: #F5F5F5;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+</style>
+
 ## Overview
 The backend of this application is built using Node.js and Express framework. It provides a RESTful API for managing users, posts, and comments. The backend interacts with a MongoDB database using Mongoose for data persistence.
 
