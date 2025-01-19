@@ -216,9 +216,12 @@ export const getAllPostsbyUser = async (req, res) => {
     });
   }
 };
-
 export const getAllPosts = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1; 
+    const limit = parseInt(req.query.limit) || 5; 
+    const skip = (page - 1) * limit;
+
     const posts = await Post.find()
       .populate("author", "username profilePic")
       .populate({
@@ -229,11 +232,19 @@ export const getAllPosts = async (req, res) => {
           select: "username profilePic",
         },
       })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPosts = await Post.countDocuments();
 
     res.status(200).json({
       message: "Posts fetched successfully",
       posts,
+      totalPosts,
+      currentPage: page,
+      totalPages: Math.ceil(totalPosts / limit),
+      isLastPage: page * limit >= totalPosts,
     });
   } catch (error) {
     console.log(error);
@@ -242,6 +253,7 @@ export const getAllPosts = async (req, res) => {
     });
   }
 };
+
 
 export const getSearchResult = async (req, res) => {
   try {
