@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import toast, { Toaster } from 'react-hot-toast'
 import { useQuery } from '@tanstack/react-query'
 import { axiosInstance } from './lib/axios'
@@ -7,6 +7,7 @@ import Signup from './pages/Signup'
 import Login from './pages/Login'
 import Home from './pages/Home'
 import Create from './pages/Create'
+import SearchResults from './pages/SearchResults'
 
 const App = () => {
   const {data: authUser, isLoading} = useQuery({
@@ -24,7 +25,7 @@ const App = () => {
     },
   })
 
-  if(isLoading) return null;
+ 
 
 
   return (
@@ -33,6 +34,7 @@ const App = () => {
         <Route path="/signup" element={authUser ? <Navigate to="/" /> : <Signup />} />
         <Route path="/login" element={authUser ? <Navigate to="/" /> : <Login />} />
         <Route path="/create" element={authUser ? <Create /> : <Navigate to="/" />} />
+        <Route path="/search" element={<SearchResults />} />
         <Route path="/" element={<Home />} />
       </Routes>
       <Toaster />

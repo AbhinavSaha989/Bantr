@@ -258,6 +258,9 @@ export const getAllPosts = async (req, res) => {
 export const getSearchResult = async (req, res) => {
   try {
     const tagQuery = req.query.tag;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
 
     if (!tagQuery) {
       return res.status(400).json({
@@ -273,17 +276,27 @@ export const getSearchResult = async (req, res) => {
 
     const posts = await Post.find({
       $and: regexSearch,
-    }).populate("author", "username profilePic");
+    }).populate("author", "username profilePic")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     if (!posts) {
       return res.status(404).json({
         message: "Posts not found",
       });
     }
+    
+
+    const totalPosts = await Post.countDocuments();
 
     res.status(200).json({
       message: "Posts fetched successfully",
       posts,
+      totalPosts,
+      currentPage: page,
+      totalPages: Math.ceil(totalPosts / limit),
+      isLastPage: page * limit >= totalPosts,
     });
   } catch (error) {
     console.log(error);
@@ -544,3 +557,31 @@ export const downvoteCount = async (req, res) => {
     });
   }
 };
+
+
+export const getMostPopularTags = async (req, res) => {
+  try {
+    const tags = await Post.aggregate([
+      { $unwind: "$tags" },
+      { $group: { _id: "$tags", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+    ]).limit(10);
+
+    if (!tags) {
+      return res.status(404).json({
+        message: "No tags found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Most popular tags fetched successfully",
+      tags,
+    })
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+}

@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { ArrowUp, ArrowDown, MessageSquare, Share2 } from "lucide-react";
-import { useMutation,useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosInstance } from "../lib/axios";
 import { formatDistanceToNow } from "date-fns";
 
 const PostCard = (props) => {
-
   const queryClient = useQueryClient();
 
-  const { data: authUser } = useQuery({queryKey: ['authUser']});
+  const { data: authUser } = useQuery({ queryKey: ["authUser"] });
 
   const randomAvatarUrl = `https://robohash.org/${
     props.post.author || "default"
@@ -18,13 +17,13 @@ const PostCard = (props) => {
     authUser ? props.post.upvote.includes(authUser._id) : false
   );
 
-
   const [upvoteCount, setUpvoteCount] = useState(props.post.upvote.length);
   const [isDownvoted, setIsDownvoted] = useState(
     authUser ? props.post.downvote.includes(authUser._id) : false
-  )
-  const [downvoteCount, setDownvoteCount] = useState(props.post.downvote.length);
-
+  );
+  const [downvoteCount, setDownvoteCount] = useState(
+    props.post.downvote.length
+  );
 
   //upvote logic
 
@@ -72,9 +71,6 @@ const PostCard = (props) => {
     }
   };
 
-
-
-
   //DownVote Logic
 
   const downvoteMutation = useMutation({
@@ -83,16 +79,15 @@ const PostCard = (props) => {
     },
     onMutate: () => {
       setDownvoteCount(downvoteCount + 1);
-      if(isUpvoted){
+      if (isUpvoted) {
         setUpvoteCount(upvoteCount - 1);
         setIsUpvoted(false);
       }
       setIsDownvoted(true);
-
     },
     onError: () => {
       setDownvoteCount(downvoteCount - 1);
-      if(isUpvoted){
+      if (isUpvoted) {
         setUpvoteCount(upvoteCount + 1);
         setIsUpvoted(true);
       }
@@ -100,13 +95,12 @@ const PostCard = (props) => {
     },
   });
 
-
   const deleteDownvoteMutation = useMutation({
     mutationFn: async () => {
       await axiosInstance.delete(`/posts/delete-downvote/${props.post._id}`);
     },
     onMutate: () => {
-      setDownvoteCount(downvoteCount - 1); 
+      setDownvoteCount(downvoteCount - 1);
       setIsDownvoted(false);
     },
     onError: () => {
