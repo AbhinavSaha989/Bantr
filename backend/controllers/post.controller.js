@@ -578,10 +578,6 @@ export const downvoteCount = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 7ccc958a6a5ac6df1216cb6634a6a37051f11d1f
 export const getMostPopularTags = async (req, res) => {
   try {
     const tags = await Post.aggregate([
@@ -599,11 +595,7 @@ export const getMostPopularTags = async (req, res) => {
     res.status(200).json({
       message: "Most popular tags fetched successfully",
       tags,
-<<<<<<< HEAD
     });
-=======
-    })
->>>>>>> 7ccc958a6a5ac6df1216cb6634a6a37051f11d1f
   } catch (error) {
     console.log(error);
 
@@ -611,8 +603,4 @@ export const getMostPopularTags = async (req, res) => {
       message: "Server error",
     });
   }
-<<<<<<< HEAD
 };
-=======
-}
->>>>>>> 7ccc958a6a5ac6df1216cb6634a6a37051f11d1f
