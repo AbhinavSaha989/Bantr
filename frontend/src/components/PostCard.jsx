@@ -8,7 +8,11 @@ import useVoteStore from "../stores/voteStore.js";
 
 const PostCard = (props) => {
   const queryClient = useQueryClient();
+<<<<<<< HEAD
   const navigate = useNavigate();
+=======
+
+>>>>>>> 7ccc958a6a5ac6df1216cb6634a6a37051f11d1f
   const { data: authUser } = useQuery({ queryKey: ["authUser"] });
 
   const randomAvatarUrl = `https://robohash.org/${
@@ -26,6 +30,7 @@ const PostCard = (props) => {
     isDownvoted: false,
   };
 
+<<<<<<< HEAD
   useEffect(() => {
     // Initialize vote status when component mounts
     if (authUser) {
@@ -49,6 +54,17 @@ const PostCard = (props) => {
   const invalidatePostsQuery = () => {
     queryClient.invalidateQueries(["posts"]);
   };
+=======
+  const [upvoteCount, setUpvoteCount] = useState(props.post.upvote.length);
+  const [isDownvoted, setIsDownvoted] = useState(
+    authUser ? props.post.downvote.includes(authUser._id) : false
+  );
+  const [downvoteCount, setDownvoteCount] = useState(
+    props.post.downvote.length
+  );
+
+  //upvote logic
+>>>>>>> 7ccc958a6a5ac6df1216cb6634a6a37051f11d1f
 
   const upvoteMutation = useMutation({
     mutationFn: async () => {
@@ -100,11 +116,17 @@ const PostCard = (props) => {
     }
   };
 
+<<<<<<< HEAD
+=======
+  //DownVote Logic
+
+>>>>>>> 7ccc958a6a5ac6df1216cb6634a6a37051f11d1f
   const downvoteMutation = useMutation({
     mutationFn: async () => {
       await axiosInstance.post(`/posts/downvote/${props.post._id}`);
     },
     onMutate: () => {
+<<<<<<< HEAD
       setVotes(props.post._id, postVotes.upvote, postVotes.downvote + 1);
       if (postVoteStatus.isUpvoted) {
         setVotes(props.post._id, postVotes.upvote - 1, postVotes.downvote + 1);
@@ -118,6 +140,20 @@ const PostCard = (props) => {
         setVoteStatus(props.post._id, true, false);
       } else {
         setVoteStatus(props.post._id, false, false);
+=======
+      setDownvoteCount(downvoteCount + 1);
+      if (isUpvoted) {
+        setUpvoteCount(upvoteCount - 1);
+        setIsUpvoted(false);
+      }
+      setIsDownvoted(true);
+    },
+    onError: () => {
+      setDownvoteCount(downvoteCount - 1);
+      if (isUpvoted) {
+        setUpvoteCount(upvoteCount + 1);
+        setIsUpvoted(true);
+>>>>>>> 7ccc958a6a5ac6df1216cb6634a6a37051f11d1f
       }
     },
     onSettled: invalidatePostsQuery,
@@ -128,8 +164,13 @@ const PostCard = (props) => {
       await axiosInstance.delete(`/posts/delete-downvote/${props.post._id}`);
     },
     onMutate: () => {
+<<<<<<< HEAD
       setVotes(props.post._id, postVotes.upvote, postVotes.downvote - 1);
       setVoteStatus(props.post._id, false, false);
+=======
+      setDownvoteCount(downvoteCount - 1);
+      setIsDownvoted(false);
+>>>>>>> 7ccc958a6a5ac6df1216cb6634a6a37051f11d1f
     },
     onError: () => {
       setVotes(props.post._id, postVotes.upvote, postVotes.downvote);
