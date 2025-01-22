@@ -7,6 +7,8 @@ import Signup from './pages/Signup'
 import Login from './pages/Login'
 import Home from './pages/Home'
 import Create from './pages/Create'
+import UserPage from './pages/UserPage'
+import PostPage from './pages/PostPage'
 
 const App = () => {
   const {data: authUser, isLoading} = useQuery({
@@ -24,6 +26,8 @@ const App = () => {
     },
   })
 
+  
+
   if(isLoading) return null;
 
 
@@ -34,6 +38,8 @@ const App = () => {
         <Route path="/login" element={authUser ? <Navigate to="/" /> : <Login />} />
         <Route path="/create" element={authUser ? <Create /> : <Navigate to="/" />} />
         <Route path="/" element={<Home />} />
+        <Route path={`user/:userId`} element={<UserPage />} />
+        <Route path={`post/:postId`} element={<PostPage />} />
       </Routes>
       <Toaster />
     </>

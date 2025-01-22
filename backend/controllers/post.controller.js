@@ -177,6 +177,9 @@ export const getPost = async (req, res) => {
 export const getAllPostsbyUser = async (req, res) => {
   try {
     const userId = req.params.userId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
 
     if (!userId) {
       return res.status(400).json({
@@ -197,7 +200,10 @@ export const getAllPostsbyUser = async (req, res) => {
           path: "commenter",
           select: "username profilePic",
         },
-      });
+      })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
 
     if (!posts) {
       return res.status(404).json({
@@ -205,38 +211,7 @@ export const getAllPostsbyUser = async (req, res) => {
       });
     }
 
-    res.status(200).json({
-      message: "Posts fetched successfully",
-      posts,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Server error",
-    });
-  }
-};
-export const getAllPosts = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1; 
-    const limit = parseInt(req.query.limit) || 5; 
-    const skip = (page - 1) * limit;
-
-    const posts = await Post.find()
-      .populate("author", "username profilePic")
-      .populate({
-        path: "comments",
-        select: "commentContent commenter",
-        populate: {
-          path: "commenter",
-          select: "username profilePic",
-        },
-      })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const totalPosts = await Post.countDocuments();
+    const totalPosts = await Post.countDocuments({ author: userId });
 
     res.status(200).json({
       message: "Posts fetched successfully",
@@ -253,7 +228,52 @@ export const getAllPosts = async (req, res) => {
     });
   }
 };
+export const getAllPosts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
 
+    // Get tags from query, if any
+    const tags = req.query.tags ? req.query.tags.split(",") : [];
+
+    let query = {};
+    if (tags.length > 0) {
+      const tagPatterns = tags.map((tag) => new RegExp(tag.trim(), "i"));
+      query = { tags: { $all: tagPatterns } };
+    }
+
+    const posts = await Post.find(query)
+      .populate("author", "username profilePic")
+      .populate({
+        path: "comments",
+        select: "commentContent commenter",
+        populate: {
+          path: "commenter",
+          select: "username profilePic",
+        },
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPosts = await Post.countDocuments(query);
+
+    res.status(200).json({
+      message: "Posts fetched successfully",
+      posts,
+      totalPosts,
+      currentPage: page,
+      totalPages: Math.ceil(totalPosts / limit),
+      isLastPage: page * limit >= totalPosts,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
 
 export const getSearchResult = async (req, res) => {
   try {
@@ -265,7 +285,7 @@ export const getSearchResult = async (req, res) => {
       });
     }
 
-    const tags = tagQuery.split(/\s+/); // group pe photo hai wo dekho
+    const tags = tagQuery.split(/\s+/); 
 
     const regexSearch = tags.map((tag) => ({
       tags: { $regex: tag, $options: "i" },
@@ -539,6 +559,33 @@ export const downvoteCount = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export const getMostPopularTags = async (req, res) => {
+  try {
+    const tags = await Post.aggregate([
+      { $unwind: "$tags" },
+      { $group: { _id: "$tags", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+    ]).limit(10);
+
+    if (!tags) {
+      return res.status(404).json({
+        message: "No tags found",
+      });
+    }
+
+    res.status(200).json({
+      message: "Most popular tags fetched successfully",
+      tags,
+    });
+  } catch (error) {
+    console.log(error);
+
     res.status(500).json({
       message: "Server error",
     });

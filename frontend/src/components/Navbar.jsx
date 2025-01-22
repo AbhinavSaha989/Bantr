@@ -4,17 +4,18 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
-import { use } from "react";
+import { useNavigate } from "react-router-dom";
 
-const Navbar = () => {
-
+const Navbar = ({onSearch}) => {
   const queryClient = useQueryClient();
   const [isFocused, setIsFocused] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: authUser } = useQuery({
-    queryKey: ['authUser'],
+    queryKey: ["authUser"],
   });
+  const navigate = useNavigate();
 
   const { data: user } = useQuery({
     queryKey: ["user"],
@@ -28,15 +29,21 @@ const Navbar = () => {
     },
   });
 
-
- 
   const handleLogout = async () => {
     const response = await axiosInstance.get("/users/logout");
     if (response.status === 200) {
       toast.success(response.data.message);
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
     }
-  }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    onSearch(e.target.value.trim());
+  };
+
+  
+
 
   const randomAvatarUrl = `https://robohash.org/${
     authUser?.username || "default"
@@ -46,7 +53,10 @@ const Navbar = () => {
     <nav className="bg-black p-4 shadow-md sticky top-0 z-30">
       <div className="container mx-auto flex items-center justify-between">
         {/* Logo and Title */}
-        <Link to={"/"} className="flex items-center space-x-2 text-white text-xl font-bold flex-shrink-0">
+        <Link
+          to={"/"}
+          className="flex items-center space-x-2 text-white text-xl font-bold flex-shrink-0"
+        >
           <img src="../public/nav.png" alt="Logo" className="h-10" />
           <span className="hidden sm:block">Bantr</span>
         </Link>
@@ -57,6 +67,8 @@ const Navbar = () => {
           <div className="relative w-full md:w-64">
             <input
               type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
               className={`w-full px-4 py-2 pl-4 pr-10 rounded-lg shadow-sm text-gray-700 transition-all duration-300 ${
                 isFocused
                   ? "bg-white focus:ring-2 focus:ring-0077b6"
@@ -92,14 +104,17 @@ const Navbar = () => {
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-md z-40">
                     {/* Profile Option */}
-                    <div className="flex flex-col items-start px-4 py-2 bg-gray-700 text-white">
+                    <div
+                      className="flex flex-col items-start px-4 py-2 bg-gray-700 text-white cursor-pointer"
+                      onClick={() => navigate(`/user/${user?._id}`)}
+                    >
                       <div className="flex items-center mb-1">
                         <img
                           src={randomAvatarUrl}
                           alt="User Avatar"
                           className="w-6 h-6 rounded-full mr-2"
                         />
-                        <span>{user?.username || "View Profile"}</span>
+                        <span>{user?.username}</span>
                       </div>
                       <span className="text-sm">View Profile</span>
                     </div>

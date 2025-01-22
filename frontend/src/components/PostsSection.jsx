@@ -1,11 +1,14 @@
 import React, { useEffect, useRef } from "react";
 import PostCard from "./PostCard";
 import { axiosInstance } from "../lib/axios";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import PostCardSkeleton from "./skeletons/PostCardSkeleton";
+import { useNavigate } from "react-router-dom";
 
-const PostsSection = () => {
+const PostsSection = ({ searchTags }) => {
   const observerRef = useRef(null);
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const {
     data,
@@ -15,10 +18,13 @@ const PostsSection = () => {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["posts"],
+    queryKey: ["posts", { tags: searchTags }],
     queryFn: async ({ pageParam = 1 }) => {
+      const tagsParam = searchTags
+        ? `&tags=${searchTags.replace(/\s+/g, ",")}`
+        : "";
       const response = await axiosInstance.get(
-        `/posts/get-all-posts?page=${pageParam}`
+        `/posts/get-all-posts?page=${pageParam}${tagsParam}`
       );
       return {
         posts: response.data.posts,
@@ -49,9 +55,10 @@ const PostsSection = () => {
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+
   if (isLoading) {
     return (
-      <section className="min-h-screen w-full md:w-2/3 bg-black backdrop-blur-md bg-opacity-30 border border-gray-300 mx-2 overflow-auto mt-2 flex flex-col items-center">
+      <section className="min-h-screen w-full md:w-2/3 bg-black border border-gray-300 mx-2 overflow-auto mt-2 flex flex-col items-center">
         {Array.from({ length: 5 }).map((_, index) => (
           <PostCardSkeleton key={index} />
         ))}
@@ -61,16 +68,22 @@ const PostsSection = () => {
 
   if (isError || !data) {
     return (
-      <section className="min-h-screen w-full md:w-2/3 bg-black backdrop-blur-md bg-opacity-30 border border-gray-300 mx-2 overflow-auto mt-2 flex flex-col items-center">
+      <section className="min-h-[calc(100vh-58px)] w-full md:w-2/3 bg-black border border-gray-300 mx-2 overflow-auto mt-2 flex flex-col items-center">
         <p>No posts to display.</p>
       </section>
     );
   }
 
   return (
-    <section className="min-h-screen w-full md:w-2/3 bg-black backdrop-blur-md bg-opacity-30 border border-gray-300 mx-2 overflow-auto mt-2 flex flex-col items-center">
-      {data.pages.map((page) =>
-        page.posts.map((post) => <PostCard key={post._id} post={post} />)
+    <section className="min-h-screen w-full md:w-2/3 bg-black border border-gray-300 mx-2 overflow-auto mt-2 flex flex-col items-center">
+      {data && data.pages && !data.pages.posts ? (
+        data.pages.map((page) =>
+          page.posts.map((post) => (
+            <PostCard key={post._id} post={post} />
+          ))
+        )
+      ) : (
+        <p className="text-center text-white">No posts to display.</p>
       )}
       {isFetchingNextPage && <p>Loading more posts...</p>}
       <div ref={observerRef} className="h-10" />

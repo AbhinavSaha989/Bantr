@@ -14,6 +14,7 @@ import {
   deleteDownvote,
   upvoteCount,
   downvoteCount,
+  getMostPopularTags,
 } from "../controllers/post.controller.js";
 
 const router = express.Router();
@@ -31,5 +32,6 @@ router.post("/downvote/:postId", checkLoggedIn, downvotePost);
 router.delete("/delete-downvote/:postId", checkLoggedIn, deleteDownvote);
 router.get("/upvote-count/:postId", upvoteCount);
 router.get("/downvote-count/:postId", downvoteCount);
+router.get("/tags", getMostPopularTags)
 
 export default router;
