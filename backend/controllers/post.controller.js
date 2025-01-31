@@ -1,10 +1,11 @@
 import Post from "../models/post.model.js";
 import Comment from "../models/comment.model.js";
 import mongoose from "mongoose";
+import cloudinary from "../lib/cloudinary.js";
 
 export const createPost = async (req, res) => {
   try {
-    const { title, content, tags } = req.body;
+    const { title, content,image, tags } = req.body;
 
     if (!title || title.trim() === "") {
       return res.status(400).json({
@@ -12,17 +13,30 @@ export const createPost = async (req, res) => {
       });
     }
 
-    if (!tags || tags.length > 10) {
+    if (!tags || tags.length > 10 || tags.length === 0) {
       return res.status(400).json({
         message: "Tags condition not satisfied",
       });
     }
-    const newPost = new Post({
+    let newPost;
+
+    if (image) {
+      const result = await cloudinary.uploader.upload(image);
+       newPost = new Post({
+      title,
+      author: req.user._id,
+      content,
+      image: result.secure_url,
+      tags,
+    });
+  } else {
+     newPost = new Post({
       title,
       author: req.user._id,
       content,
       tags,
     });
+  }
 
     const savedPost = await newPost.save();
 
@@ -69,7 +83,12 @@ export const deletePost = async (req, res) => {
         message: "Unauthorized",
       });
     }
-    console.log(post);
+
+    if (post.image) {
+      await cloudinary.uploader.destroy(
+        post.image.split("/").pop().split(".")[0]
+      );
+    }
 
     await Comment.deleteMany({ parentPost: postId });
     await Post.findByIdAndDelete(postId);
@@ -87,7 +106,7 @@ export const deletePost = async (req, res) => {
 
 export const updatePost = async (req, res) => {
   try {
-    const { title, content } = req.body;
+    const { title, content,image, tags } = req.body;
 
     const postId = req.params.postId;
 
@@ -113,9 +132,15 @@ export const updatePost = async (req, res) => {
       });
     }
 
+    if (image && post.image) {
+      await cloudinary.uploader.destroy(
+        post.image.split("/").pop().split(".")[0]
+      );
+    }
+
     const updatePost = await Post.findByIdAndUpdate(
       postId,
-      { title, content },
+      { title, content, image, tags },
       { new: true }
     );
 

@@ -1,6 +1,5 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import toast, { Toaster } from 'react-hot-toast'
 import { useQuery } from '@tanstack/react-query'
 import { axiosInstance } from './lib/axios'
 import Signup from './pages/Signup'
@@ -9,6 +8,10 @@ import Home from './pages/Home'
 import Create from './pages/Create'
 import UserPage from './pages/UserPage'
 import PostPage from './pages/PostPage'
+import Update from './pages/Update'
+import LoadingScreen from './components/LoadingScreen'
+import { ThemeProvider } from './components/ThemeProvider'
+import { Toaster } from "@/components/ui/toaster";
 
 const App = () => {
   const {data: authUser, isLoading} = useQuery({
@@ -25,24 +28,42 @@ const App = () => {
       }
     },
   })
-
+  
   
 
-  if(isLoading) return null;
+ if (isLoading) {
+   return (
+     <LoadingScreen isLoading={isLoading} />
+   );
+ }
+
 
 
   return (
-    <>
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <Routes>
-        <Route path="/signup" element={authUser ? <Navigate to="/" /> : <Signup />} />
-        <Route path="/login" element={authUser ? <Navigate to="/" /> : <Login />} />
-        <Route path="/create" element={authUser ? <Create /> : <Navigate to="/" />} />
+        <Route
+          path="/signup"
+          element={authUser ? <Navigate to="/" /> : <Signup />}
+        />
+        <Route
+          path="/login"
+          element={authUser ? <Navigate to="/" /> : <Login />}
+        />
+        <Route
+          path="/create"
+          element={authUser ? <Create /> : <Navigate to="/" />}
+        />
         <Route path="/" element={<Home />} />
         <Route path={`user/:userId`} element={<UserPage />} />
         <Route path={`post/:postId`} element={<PostPage />} />
+        <Route
+          path={`update/:postId`}
+          element={authUser ? <Update /> : <Navigate to="/" />}
+        />
       </Routes>
       <Toaster />
-    </>
+    </ThemeProvider>
   );
 }
 

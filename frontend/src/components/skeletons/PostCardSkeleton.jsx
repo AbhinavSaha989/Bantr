@@ -1,49 +1,46 @@
 import React from "react";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PostCardSkeleton = () => {
   return (
-    <div className="animate-pulse flex flex-col w-[95%] mx-2 my-4 p-2 border border-gray-700 bg-black gap-2">
+    <Card className="animate-pulse w-[95%] mx-2 my-4 p-4 space-y-4">
       {/* Header Skeleton */}
-      <div className="flex flex-row w-full justify-between p-1">
-        <div className="flex flex-row gap-2 items-center">
-          <div className="w-8 h-8 rounded-full bg-gray-800"></div>
-          <div className="w-32 h-4 bg-gray-800 rounded"></div>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <Skeleton className="w-8 h-8 rounded-full" />
+          <Skeleton className="w-32 h-4 rounded" />
         </div>
-        <div className="w-20 h-4 bg-gray-800 rounded"></div>
+        <Skeleton className="w-20 h-4 rounded" />
       </div>
 
       {/* Title Skeleton */}
-      <div className="p-1 w-full h-8 bg-gray-800 rounded"></div>
+      <Skeleton className="w-full h-8 rounded" />
 
       {/* Tags Skeleton */}
-      <div className="p-1 flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div
-            key={index}
-            className="px-4 py-2 bg-gray-800 rounded-md w-16 h-6"
-          ></div>
+          <Skeleton key={index} className="w-16 h-6 rounded-md" />
         ))}
       </div>
 
       {/* Footer Skeleton */}
-      <div className="flex flex-row justify-between p-1 items-center">
+      <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <div className="w-6 h-6 bg-gray-800 rounded-full"></div>
-            <div className="w-6 h-4 bg-gray-800 rounded"></div>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-6 h-6 bg-gray-800 rounded-full"></div>
-            <div className="w-6 h-4 bg-gray-800 rounded"></div>
-          </div>
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <Skeleton className="w-6 h-6 rounded-full" />
+              <Skeleton className="w-6 h-4 rounded" />
+            </div>
+          ))}
         </div>
         <div className="flex items-center gap-1">
-          <div className="w-6 h-6 bg-gray-800 rounded-full"></div>
-          <div className="w-6 h-4 bg-gray-800 rounded"></div>
+          <Skeleton className="w-6 h-6 rounded-full" />
+          <Skeleton className="w-6 h-4 rounded" />
         </div>
-        <div className="w-6 h-6 bg-gray-800 rounded-full"></div>
+        <Skeleton className="w-6 h-6 rounded-full" />
       </div>
-    </div>
+    </Card>
   );
 };
 

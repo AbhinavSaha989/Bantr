@@ -3,13 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 
 const TrendingSearch = ({ onTagClick }) => {
   const [selectedTags, setSelectedTags] = useState([]);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get tags from URL query parameters
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tagsFromUrl = params.get("tags");
@@ -36,10 +39,7 @@ const TrendingSearch = ({ onTagClick }) => {
         ? prevTags.filter((t) => t !== tag)
         : [...prevTags, tag];
 
-      // Update the URL with the selected tags
       navigate(`/?tags=${updatedTags.join(",")}`);
-
-      // Pass the updated tags to the parent component
       onTagClick(updatedTags.join(","));
       return updatedTags;
     });
@@ -48,47 +48,44 @@ const TrendingSearch = ({ onTagClick }) => {
   const handleClearSearch = () => {
     setSelectedTags([]);
     onTagClick("");
-    navigate(`/`); // Clear the tags in the URL
+    navigate(`/`);
   };
 
   return (
-    <section className="h-[calc(100vh-64px)] md:w-1/3 border border-gray-300 bg-black mx-2 hidden md:block sticky top-[64px] mt-2 shadow-lg">
-      <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-gray-300 uppercase tracking-wide">
+    <Card className="h-[calc(100vh-90px)] md:w-1/3 mx-2 hidden md:block sticky top-[64px] mt-2 shadow-lg">
+      <div className="p-4 flex justify-between items-center">
+        <h2 className="text-lg font-semibold uppercase tracking-wide">
           Trending Tags
         </h2>
         {selectedTags.length > 0 && (
-          <button
-            onClick={handleClearSearch}
-            className="text-sm bg-gray-700 text-gray-300 px-3 py-1 rounded-md hover:bg-gray-600 transition-all duration-300"
-          >
+          <Button onClick={handleClearSearch} size="sm" variant="secondary">
             Clear
-          </button>
+          </Button>
         )}
       </div>
-
+      <Separator />
       <div className="p-4 space-y-2">
         {tagsLoading ? (
-          <p className="text-gray-500 animate-pulse">Loading tags...</p>
+          <Skeleton className="h-6 w-32" />
         ) : trendingTags ? (
           trendingTags.tags.map((tag) => (
             <p
               key={tag._id}
               onClick={() => handleTagClick(tag._id)}
-              className={`p-2 rounded-md cursor-pointer transition-all duration-300 ${
+              className={`p-2 rounded-md cursor-pointer transition-all duration-300 text-sm font-medium ${
                 selectedTags.includes(tag._id)
-                  ? "bg-gray-700 text-white"
-                  : "bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-muted"
               }`}
             >
               #{tag._id}
             </p>
           ))
         ) : (
-          <p className="text-gray-500">No Tags to be Found</p>
+          <p className="text-muted-foreground">No Tags to be Found</p>
         )}
       </div>
-    </section>
+    </Card>
   );
 };
 

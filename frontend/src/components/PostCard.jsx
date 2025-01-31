@@ -1,222 +1,198 @@
-import React, { useEffect } from "react";
-import { ArrowUp, ArrowDown, MessageSquare, Share2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ArrowUp, ArrowDown, MessageSquare, Share2, Trash } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosInstance } from "../lib/axios";
 import { formatDistanceToNow } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import useVoteStore from "../stores/voteStore.js";
+import toast from "react-hot-toast";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 
 const PostCard = (props) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: authUser } = useQuery({ queryKey: ["authUser"] });
+  const [voteStatus, setVoteStatus] = useState({
+    isUpvoted: false,
+    isDownvoted: false,
+  });
+  const [voteCount, setVoteCount] = useState({ upvote: 0, downvote: 0 });
+  const [isVoting, setIsVoting] = useState(false);
 
   const randomAvatarUrl = `https://robohash.org/${
     props.post.author || "default"
   }?set=set2&size=50x50`;
 
-  // Get vote counts and status from Zustand global state
-  const { votes, voteStatus, setVotes, setVoteStatus } = useVoteStore();
-  const postVotes = votes[props.post._id] || {
-    upvote: props.post.upvote.length,
-    downvote: props.post.downvote.length,
-  };
-  const postVoteStatus = voteStatus[props.post._id] || {
-    isUpvoted: false,
-    isDownvoted: false,
-  };
-
   useEffect(() => {
-    // Initialize vote status when component mounts
     if (authUser) {
-      setVoteStatus(
-        props.post._id,
-        props.post.upvote.includes(authUser._id),
-        props.post.downvote.includes(authUser._id)
-      );
-    }else{
-      setVoteStatus(props.post._id, false, false);
+      setVoteStatus({
+        isUpvoted: props.post.upvote.includes(authUser._id),
+        isDownvoted: props.post.downvote.includes(authUser._id),
+      });
     }
-  }, [
-    authUser,
-    props.post._id,
-    props.post.upvote,
-    props.post.downvote,
-    setVoteStatus,
-
-  ]);
+    setVoteCount({
+      upvote: props.post.upvote.length,
+      downvote: props.post.downvote.length,
+    });
+  }, [authUser, props.post.upvote, props.post.downvote]);
 
   const invalidatePostsQuery = () => {
     queryClient.invalidateQueries(["posts"]);
   };
 
-  const upvoteMutation = useMutation({
-    mutationFn: async () => {
-      await axiosInstance.post(`/posts/upvote/${props.post._id}`);
-    },
-    onMutate: () => {
-      setVotes(props.post._id, postVotes.upvote + 1, postVotes.downvote);
-      if (postVoteStatus.isDownvoted) {
-        setVotes(props.post._id, postVotes.upvote + 1, postVotes.downvote - 1);
-      }
-      setVoteStatus(props.post._id, true, false);
-    },
-    onError: () => {
-      setVotes(props.post._id, postVotes.upvote, postVotes.downvote);
-      if (postVoteStatus.isDownvoted) {
-        setVotes(props.post._id, postVotes.upvote, postVotes.downvote);
-        setVoteStatus(props.post._id, false, true);
+  const voteMutation = useMutation({
+    mutationFn: async ({ action, voteType }) => {
+      setIsVoting(true);
+      if (action === "add") {
+        await axiosInstance.post(`/posts/${voteType}/${props.post._id}`);
       } else {
-        setVoteStatus(props.post._id, false, false);
+        await axiosInstance.delete(
+          `/posts/delete-${voteType}/${props.post._id}`
+        );
       }
     },
-    onSettled: invalidatePostsQuery,
+    onSuccess: (_, { action, voteType }) => {
+      invalidatePostsQuery();
+      if (action === "add") {
+        toast.success(
+          `${voteType === "upvote" ? "Upvoted" : "Downvoted"} successfully`
+        );
+      } else {
+        toast.success(
+          `${voteType === "upvote" ? "Upvote" : "Downvote"} removed`
+        );
+      }
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "An error occurred while voting."
+      );
+    },
+    onSettled: () => {
+      setIsVoting(false);
+    },
   });
 
-  const deleteUpvoteMutation = useMutation({
-    mutationFn: async () => {
-      await axiosInstance.delete(`/posts/delete-upvote/${props.post._id}`);
-    },
-    onMutate: () => {
-      setVotes(props.post._id, postVotes.upvote - 1, postVotes.downvote);
-      setVoteStatus(props.post._id, false, false);
-    },
-    onError: () => {
-      setVotes(props.post._id, postVotes.upvote, postVotes.downvote);
-      setVoteStatus(props.post._id, true, false);
-    },
-    onSettled: invalidatePostsQuery,
-  });
-
-  const handleUpvote = () => {
-    if(authUser){
-      if (postVoteStatus.isUpvoted) {
-        deleteUpvoteMutation.mutate();
-      } else {
-        upvoteMutation.mutate();
-      }
-    }else{
+  const handleVote = (voteType) => {
+    if (!authUser) {
       navigate("/login");
+      return;
     }
+
+    if (isVoting) return;
+
+    const isCurrentlyVoted =
+      voteType === "upvote" ? voteStatus.isUpvoted : voteStatus.isDownvoted;
+    const action = isCurrentlyVoted ? "remove" : "add";
+
+    voteMutation.mutate({ action, voteType });
   };
 
-  const downvoteMutation = useMutation({
-    mutationFn: async () => {
-      await axiosInstance.post(`/posts/downvote/${props.post._id}`);
-    },
-    onMutate: () => {
-      setVotes(props.post._id, postVotes.upvote, postVotes.downvote + 1);
-      if (postVoteStatus.isUpvoted) {
-        setVotes(props.post._id, postVotes.upvote - 1, postVotes.downvote + 1);
-      }
-      setVoteStatus(props.post._id, false, true);
-    },
-    onError: () => {
-      setVotes(props.post._id, postVotes.upvote, postVotes.downvote);
-      if (postVoteStatus.isUpvoted) {
-        setVotes(props.post._id, postVotes.upvote, postVotes.downvote);
-        setVoteStatus(props.post._id, true, false);
-      } else {
-        setVoteStatus(props.post._id, false, false);
-      }
-    },
-    onSettled: invalidatePostsQuery,
-  });
-
-  const deleteDownvoteMutation = useMutation({
-    mutationFn: async () => {
-      await axiosInstance.delete(`/posts/delete-downvote/${props.post._id}`);
-    },
-    onMutate: () => {
-      setVotes(props.post._id, postVotes.upvote, postVotes.downvote - 1);
-      setVoteStatus(props.post._id, false, false);
-    },
-    onError: () => {
-      setVotes(props.post._id, postVotes.upvote, postVotes.downvote);
-      setVoteStatus(props.post._id, false, true);
-    },
-    onSettled: invalidatePostsQuery,
-  });
-
-  const handleDownvote = () => {
-    if(authUser){
-      if (postVoteStatus.isDownvoted) {
-        deleteDownvoteMutation.mutate();
-      } else {
-        downvoteMutation.mutate();
-      }
-    }else{
-      navigate("/login");
-    }
+  const handleDelete = () => {
+    // Implement delete functionality here
+    console.log("Delete post");
   };
- 
+
   return (
-    <div className="flex flex-col w-[95%] mx-2 my-4 p-2 border border-white bg-black gap-2 cursor-pointer hover:bg-slate-900 transition duration-300" onClick={() => navigate(`/post/${props.post._id}`)} >
-      <div className="flex flex-row w-full justify-between p-1">
-        <div
-          className="flex flex-row gap-2 items-center cursor-pointer"
-          onClick={(e) =>{
-            e.stopPropagation();
-            navigate(`/user/${props.post.author._id}`);
-          }}
-        >
-          <img
-            src={randomAvatarUrl || "/placeholder.svg"}
-            alt="User Avatar"
-            className="w-8 h-8 rounded-full"
-          />
-          <p>{props.post.author.username}</p>
-        </div>
-        <p>
-          {formatDistanceToNow(new Date(props.post.createdAt), {
-            addSuffix: true,
-          }).replace("about", "")}
-        </p>
-      </div>
-
-      <div className="p-1 text-4xl break-words">{props.post.title}</div>
-      <div className="p-1 break-words flex gap-2 flex-wrap">
-        {props.post.tags.map((tag, index) => (
+    <>
+      <Card
+        className="flex flex-col w-[95%] mx-2 my-4 p-4 border gap-4 cursor-pointer transition hover:shadow-lg bg-muted"
+        onClick={() => navigate(`/post/${props.post._id}`)}
+      >
+        <div className="flex justify-between items-center">
           <div
-            key={index}
-            className="px-2 py-1 bg-gray-800 text-white rounded-md text-sm"
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/user/${props.post.author._id}`);
+            }}
           >
-            {tag}
+            <Avatar>
+              <AvatarImage src={randomAvatarUrl || "/placeholder.svg"} />
+            </Avatar>
+            <p>{props.post.author.username}</p>
           </div>
-        ))}
-      </div>
-
-      <div className="flex flex-row justify-between p-1 items-center">
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1" onClick={(e)=>{
-            e.stopPropagation();
-            handleUpvote();
-          }}>
-            <ArrowUp
-              size={20}
-              className={postVoteStatus.isUpvoted ? "text-green-500" : ""}
-            />
-            {postVotes.upvote}
-          </button>
-          <button className="flex items-center gap-1" onClick={(e)=>{
-            e.stopPropagation();
-            handleDownvote();
-          }}>
-            <ArrowDown
-              size={20}
-              className={postVoteStatus.isDownvoted ? "text-red-500" : ""}
-            />
-            {postVotes.downvote}
-          </button>
+          {authUser && props.post.author._id === authUser._id && (
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete();
+                }}
+              >
+                <Trash size={20} />
+              </Button>
+            </div>
+          )}
+          <p>
+            {formatDistanceToNow(new Date(props.post.createdAt), {
+              addSuffix: true,
+            }).replace("about", "")}
+          </p>
         </div>
-        <button className="flex items-center gap-1">
-          <MessageSquare size={20} /> {props.post.comments.length}
-        </button>
-        <button className="flex items-center gap-1">
-          <Share2 size={20} />
-        </button>
-      </div>
-    </div>
+
+        <h2 className="text-2xl font-semibold break-words">
+          {props.post.title}
+        </h2>
+        <div className="flex gap-2 flex-wrap">
+          {props.post.tags.map((tag, index) => (
+            <div
+              key={index}
+              className="px-2 py-1 bg-chart-4 rounded-md text-sm"
+            >
+              {tag}
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isVoting}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleVote("upvote");
+              }}
+            >
+              <ArrowUp
+                size={20}
+                className={voteStatus.isUpvoted ? "text-chart-5" : ""}
+              />
+              <span>{voteCount.upvote}</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isVoting}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleVote("downvote");
+              }}
+            >
+              <ArrowDown
+                size={20}
+                className={voteStatus.isDownvoted ? "text-chart-4" : ""}
+              />
+              <span>{voteCount.downvote}</span>
+            </Button>
+          </div>
+          <Button variant="ghost" size="icon">
+            <MessageSquare size={20} /> {props.post.comments.length}
+          </Button>
+          <Button variant="ghost" size="icon">
+            <Share2 size={20} />
+          </Button>
+        </div>
+      </Card>
+      <Separator className="my-2" />
+    </>
   );
 };
 

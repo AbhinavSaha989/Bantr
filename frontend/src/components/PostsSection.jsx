@@ -3,12 +3,11 @@ import PostCard from "./PostCard";
 import { axiosInstance } from "../lib/axios";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import PostCardSkeleton from "./skeletons/PostCardSkeleton";
-import { useNavigate } from "react-router-dom";
+import { Card } from "@/components/ui/card";
 
 const PostsSection = ({ searchTags }) => {
   const observerRef = useRef(null);
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  
 
   const {
     data,
@@ -55,39 +54,42 @@ const PostsSection = ({ searchTags }) => {
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-
   if (isLoading) {
     return (
-      <section className="min-h-screen w-full md:w-2/3 bg-black border border-gray-300 mx-2 overflow-auto mt-2 flex flex-col items-center">
+      <Card className="min-h-screen w-full md:w-2/3 border mx-2 overflow-auto mt-2 flex flex-col items-center">
         {Array.from({ length: 5 }).map((_, index) => (
           <PostCardSkeleton key={index} />
         ))}
-      </section>
+      </Card>
     );
   }
 
   if (isError || !data) {
     return (
-      <section className="min-h-[calc(100vh-58px)] w-full md:w-2/3 bg-black border border-gray-300 mx-2 overflow-auto mt-2 flex flex-col items-center">
-        <p>No posts to display.</p>
-      </section>
+      <Card className="min-h-[calc(100vh-58px)] w-full md:w-2/3 border mx-2 overflow-auto mt-2 flex flex-col items-center">
+        <p className="text-foreground">No posts to display.</p>
+      </Card>
     );
   }
 
   return (
-    <section className="min-h-screen w-full md:w-2/3 bg-black border border-gray-300 mx-2 overflow-auto mt-2 flex flex-col items-center">
+    <Card className="min-h-screen w-full md:w-2/3 border mx-2 overflow-auto mt-2 flex flex-col items-center ">
       {data && data.pages && !data.pages.posts ? (
-        data.pages.map((page) =>
-          page.posts.map((post) => (
-            <PostCard key={post._id} post={post} />
-          ))
-        )
+        data.pages.map((page, pageIndex) => (
+          <React.Fragment key={pageIndex}>
+            {page.posts.map((post) => (
+                <PostCard key={post._id} post={post} />
+            ))}
+          </React.Fragment>
+        ))
       ) : (
-        <p className="text-center text-white">No posts to display.</p>
+        <p className="text-center text-foreground">No posts to display.</p>
       )}
-      {isFetchingNextPage && <p>Loading more posts...</p>}
+      {isFetchingNextPage && (
+        <p className="text-foreground">Loading more posts...</p>
+      )}
       <div ref={observerRef} className="h-10" />
-    </section>
+    </Card>
   );
 };
 
