@@ -13,6 +13,10 @@ const FullPost = ({ postId }) => {
   const [comment, setComment] = useState("");
   const [commentFocused, setCommentFocused] = useState(false);
 
+  const [replyTabOpen, setReplyTabOpen] = useState(false);
+  const [reply, setReply] = useState("");
+  const [replyFocused, setReplyFocused] = useState(false);
+
   const queryClient = useQueryClient();
 
   const { data: authUser } = useQuery({
@@ -30,6 +34,16 @@ const FullPost = ({ postId }) => {
   const { mutate: createComment, isLoading } = useMutation({
     mutationFn: async (data) => {
       const response = await axiosInstance.post(`/comments/${postId}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["comments", postId]);
+    },
+  });
+
+  const { mutate: createReply, isLoading: replyLoading } = useMutation({
+    mutationFn: async ({commentContent, commentId}) => {
+      const response = await axiosInstance.post(`/comments/${commentId}/reply`, {commentContent});
       return response.data;
     },
     onSuccess: () => {
@@ -128,6 +142,26 @@ const FullPost = ({ postId }) => {
     createComment({ commentContent: comment });
     setComment("");
     setCommentFocused(false);
+  };
+
+  const handleReply = (event, commentId) => {
+    event.preventDefault();
+
+    if (reply.trim() === "") {
+      return;
+    }
+
+    createReply({ commentContent: reply, commentId });
+    setReply("");
+    setReplyFocused(false);
+  };
+
+  const handleReplyTab = (commentId) => {
+    if (replyTabOpen === commentId) {
+      setReplyTabOpen(null);
+    } else {
+      setReplyTabOpen(commentId);
+    }
   };
 
   if (postLoading || commentsLoading) {
@@ -302,16 +336,96 @@ const FullPost = ({ postId }) => {
                 <p className="text-foreground leading-relaxed">
                   {comment.commentContent}
                 </p>
-                <button
-                  className="flex justify-end"
+                <Button
+                  className="flex justify-end hover:bg-transparent text-sm"
+                  variant="ghost"
                   onClick={() => {
-                    console.log("loggingRep");
+                    handleReplyTab(comment._id);
                   }}
                 >
-                  reply
-                </button>
-                {comment.replies.length > 0 && (
+                  Reply
+                  <ArrowDown size={20} />
+                </Button>
+                {replyTabOpen === comment._id &&
+                  comment.replies.length === 0 && (
+                    <div className="ml-10 mt-4 border-l-2 border-muted pl-4">
+                      <form
+                        onSubmit={(e) => {
+                          handleReply(e, comment._id);
+                        }}
+                      >
+                        <Input
+                          placeholder="Add a reply..."
+                          className="w-full border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none"
+                          onFocus={() => setReplyFocused(true)}
+                          onBlur={() => setReplyFocused(false)}
+                          value={reply}
+                          onChange={(e) => setReply(e.target.value)}
+                        />
+                        {replyFocused && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setReply("");
+                                setReplyFocused(false);
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="submit"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                              }}
+                            >
+                              Post
+                            </Button>
+                          </div>
+                        )}
+                      </form>
+                      <h3 className="text-xl font-semibold mb-2 text-muted-foreground">
+                        No replies yet
+                      </h3>
+                    </div>
+                  )}
+                {replyTabOpen === comment._id && comment.replies.length > 0 && (
                   <div className="ml-10 mt-4 border-l-2 border-muted pl-4">
+                    <form
+                      onSubmit={(e) => {
+                        handleReply(e, comment._id);
+                      }}
+                    >
+                      <Input
+                        placeholder="Add a reply..."
+                        className="w-full border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none"
+                        onFocus={() => setReplyFocused(true)}
+                        onBlur={() => setReplyFocused(false)}
+                        value={reply}
+                        onChange={(e) => setReply(e.target.value)}
+                      />
+                      {replyFocused && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setReply("");
+                              setReplyFocused(false);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                            }}
+                          >
+                            Post
+                          </Button>
+                        </div>
+                      )}
+                    </form>
                     <h3 className="text-xl font-semibold mb-2 text-muted-foreground">
                       Replies
                     </h3>
