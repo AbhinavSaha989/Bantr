@@ -1,4 +1,4 @@
-import React,{useState} from "react";
+import React, { useState, useEffect } from "react";
 import { axiosInstance } from "../lib/axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -6,12 +6,18 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ArrowUp, ArrowDown, MessageSquare, Share2 } from "lucide-react";
+import useVoteStore from "@/stores/voteStore";
 
 const FullPost = ({ postId }) => {
-  const [comment , setComment] = useState("");
+  const [comment, setComment] = useState("");
   const [commentFocused, setCommentFocused] = useState(false);
 
   const queryClient = useQueryClient();
+
+  const { data: authUser } = useQuery({
+    queryKey: ["authUser"],
+  });
 
   const { data: postFetch, isLoading: postLoading } = useQuery({
     queryKey: ["post", postId],
@@ -21,7 +27,7 @@ const FullPost = ({ postId }) => {
     },
   });
 
-  const {mutate: createComment, isLoading}= useMutation({
+  const { mutate: createComment, isLoading } = useMutation({
     mutationFn: async (data) => {
       const response = await axiosInstance.post(`/comments/${postId}`, data);
       return response.data;
@@ -30,9 +36,6 @@ const FullPost = ({ postId }) => {
       queryClient.invalidateQueries(["comments", postId]);
     },
   });
-
-
-
 
   const { data: commentsFetch, isLoading: commentsLoading } = useQuery({
     queryKey: ["comments", postId],
@@ -44,17 +47,88 @@ const FullPost = ({ postId }) => {
     },
   });
 
+  const { votes, voteStatus, setVotes, setVoteStatus } = useVoteStore();
+  const [isVoting, setIsVoting] = useState(false);
+
+  useEffect(() => {
+    if (authUser && postFetch) {
+      setVoteStatus(
+        postId,
+        postFetch.upvote.includes(authUser._id),
+        postFetch.downvote.includes(authUser._id)
+      );
+    }
+    if (postFetch) {
+      setVotes(postId, postFetch.upvote.length, postFetch.downvote.length);
+    }
+  }, [authUser, postFetch, postId]);
+
+  const voteMutation = useMutation({
+    queryKey: ["vote"],
+    mutationFn: async ({ action, voteType }) => {
+      setIsVoting(true);
+      if (action === "add") {
+        await axiosInstance.post(`/posts/${voteType}/${postId}`);
+      } else {
+        await axiosInstance.delete(`/posts/delete-${voteType}/${postId}`);
+      }
+    },
+    onSuccess: (_, { action, voteType }) => {
+      queryClient.invalidateQueries(["posts"]);
+      const isUpvote = voteType === "upvote";
+      const isCurrentlyVoted = isUpvote
+        ? voteStatus[postId]?.isUpvoted
+        : voteStatus[postId]?.isDownvoted;
+
+      setVoteStatus(
+        postId,
+        isUpvote ? !isCurrentlyVoted : voteStatus[postId]?.isUpvoted,
+        isUpvote ? voteStatus[postId]?.isDownvoted : !isCurrentlyVoted
+      );
+      setVotes(
+        postId,
+        votes[postId].upvote + (isUpvote ? (action === "add" ? 1 : -1) : 0),
+        votes[postId].downvote + (!isUpvote ? (action === "add" ? 1 : -1) : 0)
+      );
+
+      toast.success(
+        `${voteType === "upvote" ? "Upvoted" : "Downvoted"} successfully`
+      );
+      setIsVoting(false);
+    },
+    onError: () => {
+      setIsVoting(false);
+    },
+  });
+
+  const handleVote = (voteType) => {
+    if (!authUser) {
+      navigate("/login");
+      return;
+    }
+
+    if (isVoting) return;
+
+    const isCurrentlyVoted =
+      voteType === "upvote"
+        ? voteStatus[postId]?.isUpvoted
+        : voteStatus[postId]?.isDownvoted;
+    const action = isCurrentlyVoted ? "remove" : "add";
+
+    voteMutation.mutate({ action, voteType });
+  };
+
   const handleComment = (event) => {
     event.preventDefault();
 
-  if(comment.trim() === ""){
-    return;
-  }
+    if (comment.trim() === "") {
+      return;
+    }
 
-  createComment({commentContent: comment});
-  setComment("");
-  setCommentFocused(false);
-} 
+    createComment({ commentContent: comment });
+    setComment("");
+    setCommentFocused(false);
+  };
 
   if (postLoading || commentsLoading) {
     return (
@@ -96,6 +170,61 @@ const FullPost = ({ postId }) => {
             alt="Random Post"
             className="w-full rounded-lg mb-6 border border-muted shadow-md h-[50vh] object-cover"
           />
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={isVoting}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleVote("upvote");
+                }}
+                className="hover:bg-transparent"
+              >
+                <ArrowUp
+                  size={20}
+                  className={
+                    voteStatus[postId]?.isUpvoted ? "text-chart-5" : ""
+                  }
+                />
+                <span>{votes[postId]?.upvote || 0}</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={isVoting}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleVote("downvote");
+                }}
+                className="hover:bg-transparent"
+              >
+                <ArrowDown
+                  size={20}
+                  className={
+                    voteStatus[postId]?.isDownvoted ? "text-chart-4" : ""
+                  }
+                />
+                <span>{votes[postId]?.downvote || 0}</span>
+              </Button>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:bg-transparent"
+            >
+              <MessageSquare size={20} /> {postFetch.comments.length}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:bg-transparent"
+            >
+              <Share2 size={20} />
+            </Button>
+          </div>
         </div>
       )}
 
@@ -121,13 +250,23 @@ const FullPost = ({ postId }) => {
           />
           {commentFocused && (
             <div className="flex items-center gap-2">
-              <Button onMouseDown={(e)=>{
-                e.preventDefault();
-                setComment("")
-                setCommentFocused(false);}}>Cancel</Button>
-              <Button type="submit" onMouseDown = {(e)=>{
-                e.preventDefault();
-              }}>Post</Button>
+              <Button
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setComment("");
+                  setCommentFocused(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                }}
+              >
+                Post
+              </Button>
             </div>
           )}
         </form>
@@ -163,7 +302,14 @@ const FullPost = ({ postId }) => {
                 <p className="text-foreground leading-relaxed">
                   {comment.commentContent}
                 </p>
-                <button className="flex justify-end" onClick={()=>{console.log("loggingRep")}}>reply</button>
+                <button
+                  className="flex justify-end"
+                  onClick={() => {
+                    console.log("loggingRep");
+                  }}
+                >
+                  reply
+                </button>
                 {comment.replies.length > 0 && (
                   <div className="ml-10 mt-4 border-l-2 border-muted pl-4">
                     <h3 className="text-xl font-semibold mb-2 text-muted-foreground">
@@ -215,4 +361,5 @@ const FullPost = ({ postId }) => {
 };
 
 export default FullPost;
+
 

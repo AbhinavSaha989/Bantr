@@ -168,7 +168,7 @@ const Navbar = ({ onSearch }) => {
             ) : (
               <Link
                 to="/login"
-                className="px-4 py-2 font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2"
+                className="px-4 py-2 font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 bg-chart-4"
               >
                 Login
               </Link>

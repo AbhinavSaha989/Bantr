@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ArrowUp, ArrowDown, MessageSquare, Share2, Trash } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosInstance } from "../lib/axios";
@@ -9,61 +9,70 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import useVoteStore from "@/stores/voteStore";
 
 const PostCard = (props) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: authUser } = useQuery({ queryKey: ["authUser"] });
-  const [voteStatus, setVoteStatus] = useState({
-    isUpvoted: false,
-    isDownvoted: false,
-  });
-  const [voteCount, setVoteCount] = useState({ upvote: 0, downvote: 0 });
+
+  const { votes, voteStatus, setVotes, setVoteStatus } = useVoteStore();
+
+  const postId = props.post._id;
+
   const [isVoting, setIsVoting] = useState(false);
 
   const randomAvatarUrl = `https://robohash.org/${
     props.post.author || "default"
   }?set=set2&size=50x50`;
 
+  // Initialize vote state from post data
   useEffect(() => {
     if (authUser) {
-      setVoteStatus({
-        isUpvoted: props.post.upvote.includes(authUser._id),
-        isDownvoted: props.post.downvote.includes(authUser._id),
-      });
+      setVoteStatus(
+        postId,
+        props.post.upvote.includes(authUser._id),
+        props.post.downvote.includes(authUser._id)
+      );
     }
-    setVoteCount({
-      upvote: props.post.upvote.length,
-      downvote: props.post.downvote.length,
-    });
-  }, [authUser, props.post.upvote, props.post.downvote]);
+    setVotes(postId, props.post.upvote.length, props.post.downvote.length);
+  }, [authUser, props.post.upvote, props.post.downvote, postId]);
 
   const invalidatePostsQuery = () => {
     queryClient.invalidateQueries(["posts"]);
   };
 
   const voteMutation = useMutation({
+    queryKey: ["vote"],
     mutationFn: async ({ action, voteType }) => {
       setIsVoting(true);
       if (action === "add") {
-        await axiosInstance.post(`/posts/${voteType}/${props.post._id}`);
+        await axiosInstance.post(`/posts/${voteType}/${postId}`);
       } else {
-        await axiosInstance.delete(
-          `/posts/delete-${voteType}/${props.post._id}`
-        );
+        await axiosInstance.delete(`/posts/delete-${voteType}/${postId}`);
       }
     },
     onSuccess: (_, { action, voteType }) => {
       invalidatePostsQuery();
-      if (action === "add") {
-        toast.success(
-          `${voteType === "upvote" ? "Upvoted" : "Downvoted"} successfully`
-        );
-      } else {
-        toast.success(
-          `${voteType === "upvote" ? "Upvote" : "Downvote"} removed`
-        );
-      }
+      const isUpvote = voteType === "upvote";
+      const isCurrentlyVoted = isUpvote
+        ? voteStatus[postId]?.isUpvoted
+        : voteStatus[postId]?.isDownvoted;
+
+      setVoteStatus(
+        postId,
+        isUpvote ? !isCurrentlyVoted : voteStatus[postId]?.isUpvoted,
+        isUpvote ? voteStatus[postId]?.isDownvoted : !isCurrentlyVoted
+      );
+      setVotes(
+        postId,
+        votes[postId].upvote + (isUpvote ? (action === "add" ? 1 : -1) : 0),
+        votes[postId].downvote + (!isUpvote ? (action === "add" ? 1 : -1) : 0)
+      );
+
+      toast.success(
+        `${voteType === "upvote" ? "Upvoted" : "Downvoted"} successfully`
+      );
     },
     onError: (error) => {
       toast.error(
@@ -84,14 +93,15 @@ const PostCard = (props) => {
     if (isVoting) return;
 
     const isCurrentlyVoted =
-      voteType === "upvote" ? voteStatus.isUpvoted : voteStatus.isDownvoted;
+      voteType === "upvote"
+        ? voteStatus[postId]?.isUpvoted
+        : voteStatus[postId]?.isDownvoted;
     const action = isCurrentlyVoted ? "remove" : "add";
 
     voteMutation.mutate({ action, voteType });
   };
 
   const handleDelete = () => {
-    // Implement delete functionality here
     console.log("Delete post");
   };
 
@@ -99,7 +109,7 @@ const PostCard = (props) => {
     <>
       <Card
         className="flex flex-col w-[95%] mx-2 my-4 p-4 border gap-4 cursor-pointer transition hover:shadow-lg bg-muted"
-        onClick={() => navigate(`/post/${props.post._id}`)}
+        onClick={() => navigate(`/post/${postId}`)}
       >
         <div className="flex justify-between items-center">
           <div
@@ -162,9 +172,9 @@ const PostCard = (props) => {
             >
               <ArrowUp
                 size={20}
-                className={voteStatus.isUpvoted ? "text-chart-5" : ""}
+                className={voteStatus[postId]?.isUpvoted ? "text-chart-5" : ""}
               />
-              <span>{voteCount.upvote}</span>
+              <span>{votes[postId]?.upvote || 0}</span>
             </Button>
 
             <Button
@@ -178,9 +188,11 @@ const PostCard = (props) => {
             >
               <ArrowDown
                 size={20}
-                className={voteStatus.isDownvoted ? "text-chart-4" : ""}
+                className={
+                  voteStatus[postId]?.isDownvoted ? "text-chart-4" : ""
+                }
               />
-              <span>{voteCount.downvote}</span>
+              <span>{votes[postId]?.downvote || 0}</span>
             </Button>
           </div>
           <Button variant="ghost" size="icon">
