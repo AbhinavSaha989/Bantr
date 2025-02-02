@@ -262,49 +262,51 @@ const FullPost = ({ postId }) => {
         </div>
       )}
 
-      <Card className="w-full p-4 bg-card rounded-lg shadow-md flex gap-2">
-        <Avatar>
-          <AvatarImage
-            src={`https://robohash.org/${postFetch.author.username}?set=set2&size=50x50`}
-            alt="Profile"
-            className="w-12 rounded-full border border-muted"
-          />
-        </Avatar>
-        <form
-          onSubmit={handleComment}
-          className="flex-1 flex items-center gap-4"
-        >
-          <Input
-            placeholder="Add a comment..."
-            className="w-full border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none"
-            onFocus={() => setCommentFocused(true)}
-            onBlur={() => setCommentFocused(false)}
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
-          {commentFocused && (
-            <div className="flex items-center gap-2">
-              <Button
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setComment("");
-                  setCommentFocused(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                }}
-              >
-                Post
-              </Button>
-            </div>
-          )}
-        </form>
-      </Card>
+      {authUser && (
+        <Card className="w-full p-4 bg-card rounded-lg shadow-md flex gap-2">
+          <Avatar>
+            <AvatarImage
+              src={`https://robohash.org/${postFetch.author.username}?set=set2&size=50x50`}
+              alt="Profile"
+              className="w-12 rounded-full border border-muted"
+            />
+          </Avatar>
+          <form
+            onSubmit={handleComment}
+            className="flex-1 flex items-center gap-4"
+          >
+            <Input
+              placeholder="Add a comment..."
+              className="w-full border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none"
+              onFocus={() => setCommentFocused(true)}
+              onBlur={() => setCommentFocused(false)}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+            {commentFocused && (
+              <div className="flex items-center gap-2">
+                <Button
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setComment("");
+                    setCommentFocused(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                  }}
+                >
+                  Post
+                </Button>
+              </div>
+            )}
+          </form>
+        </Card>
+      )}
       {commentsFetch?.length > 0 ? (
         <div className="w-full mt-8">
           <h2 className="text-3xl font-bold mb-6 border-b border-muted pb-2 text-foreground">
@@ -349,6 +351,51 @@ const FullPost = ({ postId }) => {
                 {replyTabOpen === comment._id &&
                   comment.replies.length === 0 && (
                     <div className="ml-10 mt-4 border-l-2 border-muted pl-4">
+                      {authUser && (
+                        <form
+                          onSubmit={(e) => {
+                            handleReply(e, comment._id);
+                          }}
+                        >
+                          <Input
+                            placeholder="Add a reply..."
+                            className="w-full border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none"
+                            onFocus={() => setReplyFocused(true)}
+                            onBlur={() => setReplyFocused(false)}
+                            value={reply}
+                            onChange={(e) => setReply(e.target.value)}
+                          />
+                          {replyFocused && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setReply("");
+                                  setReplyFocused(false);
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                type="submit"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                }}
+                              >
+                                Post
+                              </Button>
+                            </div>
+                          )}
+                        </form>
+                      )}
+                      <h3 className="text-xl font-semibold mb-2 text-muted-foreground">
+                        No replies yet
+                      </h3>
+                    </div>
+                  )}
+                {replyTabOpen === comment._id && comment.replies.length > 0 && (
+                  <div className="ml-10 mt-4 border-l-2 border-muted pl-4">
+                    {authUser && (
                       <form
                         onSubmit={(e) => {
                           handleReply(e, comment._id);
@@ -356,14 +403,14 @@ const FullPost = ({ postId }) => {
                       >
                         <Input
                           placeholder="Add a reply..."
-                          className="w-full border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none"
+                          className="w-full border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none mb-2"
                           onFocus={() => setReplyFocused(true)}
                           onBlur={() => setReplyFocused(false)}
                           value={reply}
                           onChange={(e) => setReply(e.target.value)}
                         />
                         {replyFocused && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center  justify-end gap-2 mb-2">
                             <Button
                               onMouseDown={(e) => {
                                 e.preventDefault();
@@ -384,51 +431,7 @@ const FullPost = ({ postId }) => {
                           </div>
                         )}
                       </form>
-                      <h3 className="text-xl font-semibold mb-2 text-muted-foreground">
-                        No replies yet
-                      </h3>
-                    </div>
-                  )}
-                {replyTabOpen === comment._id && comment.replies.length > 0 && (
-                  <div className="ml-10 mt-4 border-l-2 border-muted pl-4">
-                    <form
-                      onSubmit={(e) => {
-                        handleReply(e, comment._id);
-                      }}
-                    >
-                      <Input
-                        placeholder="Add a reply..."
-                        className="w-full border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none"
-                        onFocus={() => setReplyFocused(true)}
-                        onBlur={() => setReplyFocused(false)}
-                        value={reply}
-                        onChange={(e) => setReply(e.target.value)}
-                      />
-                      {replyFocused && (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setReply("");
-                              setReplyFocused(false);
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            type="submit"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                            }}
-                          >
-                            Post
-                          </Button>
-                        </div>
-                      )}
-                    </form>
-                    <h3 className="text-xl font-semibold mb-2 text-muted-foreground">
-                      Replies
-                    </h3>
+                    )}
                     <div className="space-y-4">
                       {comment.replies.map((reply) => (
                         <Card
