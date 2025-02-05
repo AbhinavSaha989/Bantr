@@ -4,7 +4,7 @@ import User from "../models/user.model.js";
 
 const logoutUser = async (req, res) => {
   try {
-    res.clearCookie("jwt","",{
+    res.clearCookie("jwt",{
       httpOnly: true,
       sameSite: "none",
       secure: process.env.NODE_ENV === "production",

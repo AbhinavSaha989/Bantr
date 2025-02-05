@@ -46,12 +46,15 @@ const Navbar = ({ onSearch }) => {
   });
 
   const handleLogout = async () => {
-    const response = await axiosInstance.get("/users/logout");
+    const response = await axiosInstance.get("/users/logout",{},{
+      withCredentials: true,
+    });
     if (response.status === 200) {
       toast({
         title: "Success",
         description: response.data.message,
       });
+      
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
     }
   };
