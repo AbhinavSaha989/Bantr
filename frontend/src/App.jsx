@@ -18,7 +18,9 @@ const App = () => {
     queryKey: ['authUser'],
     queryFn: async () => {
       try {
-        const response = await axiosInstance.get("/users/get-user");
+        const response = await axiosInstance.get("/users/get-user",{
+          withCredentials: true,
+        });
         return response.data;
       } catch (error) {
         if(error.response && error.response.status === 401){
