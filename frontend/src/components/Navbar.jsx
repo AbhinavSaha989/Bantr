@@ -87,7 +87,7 @@ const Navbar = ({ onSearch }) => {
           to={"/"}
           className="flex items-center space-x-2 text-xl font-bold flex-shrink-0"
         >
-          <img src="../public/nav.png" alt="Logo" className="h-10" />
+          <img src="/nav.png" alt="Logo" className="h-10" />
           <span className="hidden sm:block">Bantr</span>
         </Link>
 
