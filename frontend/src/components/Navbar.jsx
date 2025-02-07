@@ -115,7 +115,7 @@ const Navbar = ({ onSearch }) => {
 
           {/* Dark Mode Toggle */}
           <Button onClick={toggleDarkMode} className="p-2 size-10 rounded-full">
-            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            {darkMode ? <Moon size={20} /> : <Sun size={20} />}
           </Button>
           {/* Fix for initial theme issue */}
           {darkMode === null && setDarkMode(true)}
