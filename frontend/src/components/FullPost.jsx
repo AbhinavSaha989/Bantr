@@ -211,7 +211,6 @@ const FullPost = ({ postId }) => {
                 size="icon"
                 disabled={isVoting}
                 onClick={(e) => {
-                  e.stopPropagation();
                   handleVote("upvote");
                 }}
                 className="hover:bg-transparent"
@@ -230,7 +229,6 @@ const FullPost = ({ postId }) => {
                 size="icon"
                 disabled={isVoting}
                 onClick={(e) => {
-                  e.stopPropagation();
                   handleVote("downvote");
                 }}
                 className="hover:bg-transparent"
