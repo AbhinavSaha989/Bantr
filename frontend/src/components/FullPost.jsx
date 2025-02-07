@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown, MessageSquare, Share2 } from "lucide-react";
 import useVoteStore from "@/stores/voteStore";
-import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const FullPost = ({ postId }) => {
   const [comment, setComment] = useState("");
@@ -20,7 +20,7 @@ const FullPost = ({ postId }) => {
 
   const queryClient = useQueryClient();
 
-  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const { data: authUser } = useQuery({
     queryKey: ["authUser"],
@@ -120,7 +120,11 @@ const FullPost = ({ postId }) => {
 
   const handleVote = (voteType) => {
     if (!authUser) {
-      navigate("/login");
+      toast({
+        title: "Uh oh! Something went wrong.",
+        description: "You need to be logged in to vote.",
+        variant: "destructive",
+      })
       return;
     }
 
