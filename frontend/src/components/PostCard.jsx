@@ -101,8 +101,17 @@ const PostCard = (props) => {
     voteMutation.mutate({ action, voteType });
   };
 
+  const deleteMutation = useMutation({
+      mutationFn: async () => {
+        await axiosInstance.delete(`/posts/${postId}`);
+      },
+      onSuccess: () => {
+        invalidatePostsQuery();
+      }
+  });
+
   const handleDelete = () => {
-    console.log("Delete post");
+    deleteMutation.mutate();
   };
 
   return (

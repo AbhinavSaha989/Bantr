@@ -121,7 +121,6 @@ const FullPost = ({ postId }) => {
   const handleVote = (voteType) => {
     if (!authUser) {
       toast({
-        title: "Uh oh! Something went wrong.",
         description: "You need to be logged in to vote.",
         variant: "destructive",
       })
