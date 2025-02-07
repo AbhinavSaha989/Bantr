@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { axiosInstance } from "../lib/axios";
 import { useNavigate } from "react-router-dom";
-import { Loader } from "lucide-react";
+import { Image, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const CreatePost = () => {
   const [title, setTitle] = useState("");
   const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [content, setContent] = useState("");
   const [tags, setTags] = useState([]);
   const [tag, setTag] = useState("");
@@ -44,16 +45,24 @@ const CreatePost = () => {
     },
   });
 
-  const handleCreation = (event) => {
+  const handleCreation = async (event) => {
     event.preventDefault();
-    if (!title || !content || tags.length === 0) {
-      toast({
-        title: "Uh oh! Something went wrong.",
-        description: "Please fill in all the required fields.",
-      });
-      return;
+    try {
+      if (!title || !content || tags.length === 0) {
+        toast({
+          title: "Uh oh! Something went wrong.",
+          description: "Please fill in all the required fields.",
+        });
+        return;
+      }
+      const postData = {title, content, tags};
+      if(image){
+        postData.image = await readFileAsDataURL(image);
+      }  
+      createPost(postData);
+    } catch (error) {
+      
     }
-    createPost({ title, content, tags });
   };
 
   const handleSetTags = (event) => {
@@ -67,6 +76,25 @@ const CreatePost = () => {
 
   const removeTag = (indexToRemove) => {
     setTags(tags.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    setImage(file);
+    if(file){
+      readFileAsDataURL(file).then(setImagePreview);
+    }else{
+      setImagePreview(null);
+    }
+  }
+
+  const readFileAsDataURL = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   return (
@@ -120,6 +148,16 @@ const CreatePost = () => {
               rows={6}
               className="w-full p-3 bg-background border-input focus:ring-ring"
             />
+          </div>
+          {imagePreview && (
+            <img src={imagePreview} alt="Preview" className="w-[75%] object-cover" />
+          )}
+          <div>
+            <label className="flex items-center">
+              <Image size={24} />
+              <span>Photo</span>
+              <Input type="file" accept="image/*" className="hidden" onChange={handleImageChange}/>
+            </label>
           </div>
 
           {/* Tags Input */}

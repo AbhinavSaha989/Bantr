@@ -311,11 +311,13 @@ const FullPost = ({ postId }) => {
           <p className="text-lg text-foreground leading-relaxed text-justify">
             {postFetch.content}
           </p>
-          <img
-            src="https://images.unsplash.com/photo-1736931544273-ebe70ecc8829?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-            alt="Random Post"
-            className="w-full rounded-lg mb-6 border border-muted shadow-md h-[50vh] object-cover"
-          />
+          {postFetch.image && (
+            <img
+              src={postFetch.image}
+              alt="Random Post"
+              className="w-full rounded-lg mb-6 border border-muted shadow-md h-[50vh] object-cover"
+            />
+          )}
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Button
@@ -491,8 +493,7 @@ const FullPost = ({ postId }) => {
                     }}
                   >
                     Reply
-                    <ArrowDown size={20} />
-                    ({comment.replies.length})
+                    <ArrowDown size={20} />({comment.replies.length})
                   </Button>
                 </div>
                 {replyTabOpen === comment._id && (
