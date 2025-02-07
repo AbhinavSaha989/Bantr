@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { axiosInstance } from "../lib/axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown, MessageSquare, Share2 } from "lucide-react";
 import useVoteStore from "@/stores/voteStore";
 import { useToast } from "@/hooks/use-toast";
+import useCommentVoteStore from "@/stores/commentVoteStore";
 
 const FullPost = ({ postId }) => {
   const [comment, setComment] = useState("");
@@ -19,6 +20,14 @@ const FullPost = ({ postId }) => {
   const [replyFocused, setReplyFocused] = useState(false);
 
   const queryClient = useQueryClient();
+
+  const {
+    commentVotes,
+    commentVoteStatus,
+    setCommentVotes,
+    setCommentVoteStatus,
+  } = useCommentVoteStore();
+  const [isCommentVoting, setIsCommentVoting] = useState(false);
 
   const { toast } = useToast();
 
@@ -45,8 +54,11 @@ const FullPost = ({ postId }) => {
   });
 
   const { mutate: createReply, isLoading: replyLoading } = useMutation({
-    mutationFn: async ({commentContent, commentId}) => {
-      const response = await axiosInstance.post(`/comments/${commentId}/reply`, {commentContent});
+    mutationFn: async ({ commentContent, commentId }) => {
+      const response = await axiosInstance.post(
+        `/comments/${commentId}/reply`,
+        { commentContent }
+      );
       return response.data;
     },
     onSuccess: () => {
@@ -78,7 +90,42 @@ const FullPost = ({ postId }) => {
     if (postFetch) {
       setVotes(postId, postFetch.upvote.length, postFetch.downvote.length);
     }
-  }, [authUser, postFetch, postId]);
+    if (authUser && commentsFetch) {
+      commentsFetch.forEach((comment) => {
+        setCommentVoteStatus(
+          comment._id,
+          comment.upvote.includes(authUser._id),
+          comment.downvote.includes(authUser._id)
+        );
+        setCommentVotes(
+          comment._id,
+          comment.upvote.length,
+          comment.downvote.length
+        );
+
+        comment.replies.forEach((reply) => {
+          setCommentVoteStatus(
+            reply._id,
+            reply.upvote.includes(authUser._id),
+            reply.downvote.includes(authUser._id)
+          );
+          setCommentVotes(
+            reply._id,
+            reply.upvote.length,
+            reply.downvote.length
+          );
+        });
+      });
+    }
+  }, [
+    authUser,
+    postFetch,
+    commentsFetch,
+    setCommentVoteStatus,
+    setCommentVotes,
+    setVoteStatus,
+    postId,
+  ]);
 
   const voteMutation = useMutation({
     queryKey: ["vote"],
@@ -123,7 +170,7 @@ const FullPost = ({ postId }) => {
       toast({
         description: "You need to be logged in to vote.",
         variant: "destructive",
-      })
+      });
       return;
     }
 
@@ -136,6 +183,65 @@ const FullPost = ({ postId }) => {
     const action = isCurrentlyVoted ? "remove" : "add";
 
     voteMutation.mutate({ action, voteType });
+  };
+
+  const commentVoteMutation = useMutation({
+    mutationFn: async ({ id, action, voteType }) => {
+      setIsCommentVoting(true);
+      if (action === "add") {
+        await axiosInstance.post(`/comments/${voteType}/${id}`);
+      } else {
+        await axiosInstance.delete(`/comments/delete-${voteType}/${id}`);
+      }
+    },
+    onSuccess: (_, { id, action, voteType }) => {
+      queryClient.invalidateQueries(["comments", postId]);
+      const isUpvote = voteType === "upvote";
+      const isCurrentlyVoted = isUpvote
+        ? commentVoteStatus[id]?.isUpvoted
+        : commentVoteStatus[id]?.isDownvoted;
+
+      setCommentVoteStatus(
+        id,
+        isUpvote ? !isCurrentlyVoted : commentVoteStatus[id]?.isUpvoted,
+        isUpvote ? commentVoteStatus[id]?.isDownvoted : !isCurrentlyVoted
+      );
+      setCommentVotes(
+        id,
+        commentVotes[id]?.upvote + (isUpvote ? (action === "add" ? 1 : -1) : 0),
+        commentVotes[id]?.downvote +
+          (!isUpvote ? (action === "add" ? 1 : -1) : 0)
+      );
+
+      toast.success(
+        `${voteType === "upvote" ? "Upvoted" : "Downvoted"} successfully`
+      );
+      setIsCommentVoting(false);
+    },
+    onError: () => {
+      setIsCommentVoting(false);
+      toast.error("Failed to vote. Please try again.");
+    },
+  });
+
+  const handleCommentVote = (id, voteType) => {
+    if (!authUser) {
+      toast({
+        description: "You need to be logged in to vote.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isCommentVoting) return;
+
+    const isCurrentlyVoted =
+      voteType === "upvote"
+        ? commentVoteStatus[id]?.isUpvoted
+        : commentVoteStatus[id]?.isDownvoted;
+    const action = isCurrentlyVoted ? "remove" : "add";
+
+    commentVoteMutation.mutate({ id, action, voteType });
   };
 
   const handleComment = (event) => {
@@ -342,62 +448,54 @@ const FullPost = ({ postId }) => {
                 <p className="text-foreground leading-relaxed">
                   {comment.commentContent}
                 </p>
-                <Button
-                  className="flex justify-end hover:bg-transparent text-sm"
-                  variant="ghost"
-                  onClick={() => {
-                    handleReplyTab(comment._id);
-                  }}
-                >
-                  Reply
-                  <ArrowDown size={20} />
-                </Button>
-                {replyTabOpen === comment._id &&
-                  comment.replies.length === 0 && (
-                    <div className="ml-10 mt-4 border-l-2 border-muted pl-4">
-                      {authUser && (
-                        <form
-                          onSubmit={(e) => {
-                            handleReply(e, comment._id);
-                          }}
-                        >
-                          <Input
-                            placeholder="Add a reply..."
-                            className="w-full border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none"
-                            onFocus={() => setReplyFocused(true)}
-                            onBlur={() => setReplyFocused(false)}
-                            value={reply}
-                            onChange={(e) => setReply(e.target.value)}
-                          />
-                          {replyFocused && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setReply("");
-                                  setReplyFocused(false);
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                              <Button
-                                type="submit"
-                                onMouseDown={(e) => {
-                                  e.preventDefault();
-                                }}
-                              >
-                                Post
-                              </Button>
-                            </div>
-                          )}
-                        </form>
-                      )}
-                      <h3 className="text-xl font-semibold mb-2 text-muted-foreground">
-                        No replies yet
-                      </h3>
-                    </div>
-                  )}
-                {replyTabOpen === comment._id && comment.replies.length > 0 && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={isCommentVoting}
+                    onClick={() => handleCommentVote(comment._id, "upvote")}
+                    className="hover:bg-transparent"
+                  >
+                    <ArrowUp
+                      size={20}
+                      className={
+                        commentVoteStatus[comment._id]?.isUpvoted
+                          ? "text-chart-5"
+                          : ""
+                      }
+                    />
+                    <span>{commentVotes[comment._id]?.upvote || 0}</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={isCommentVoting}
+                    onClick={() => handleCommentVote(comment._id, "downvote")}
+                    className="hover:bg-transparent"
+                  >
+                    <ArrowDown
+                      size={20}
+                      className={
+                        commentVoteStatus[comment._id]?.isDownvoted
+                          ? "text-chart-4"
+                          : ""
+                      }
+                    />
+                    <span>{commentVotes[comment._id]?.downvote || 0}</span>
+                  </Button>
+                  <Button
+                    className="flex justify-end hover:bg-transparent text-sm"
+                    variant="ghost"
+                    onClick={() => {
+                      handleReplyTab(comment._id);
+                    }}
+                  >
+                    Reply
+                    <ArrowDown size={20} />
+                    ({comment.replies.length})
+                  </Button>
+                </div>
+                {replyTabOpen === comment._id && (
                   <div className="ml-10 mt-4 border-l-2 border-muted pl-4">
                     {authUser && (
                       <form
@@ -414,7 +512,7 @@ const FullPost = ({ postId }) => {
                           onChange={(e) => setReply(e.target.value)}
                         />
                         {replyFocused && (
-                          <div className="flex items-center  justify-end gap-2 mb-2">
+                          <div className="flex items-center justify-end gap-2 mb-2">
                             <Button
                               onMouseDown={(e) => {
                                 e.preventDefault();
@@ -463,6 +561,50 @@ const FullPost = ({ postId }) => {
                           <p className="text-foreground">
                             {reply.commentContent}
                           </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={isCommentVoting}
+                              onClick={() =>
+                                handleCommentVote(reply._id, "upvote")
+                              }
+                              className="hover:bg-transparent"
+                            >
+                              <ArrowUp
+                                size={16}
+                                className={
+                                  commentVoteStatus[reply._id]?.isUpvoted
+                                    ? "text-chart-5"
+                                    : ""
+                                }
+                              />
+                              <span>
+                                {commentVotes[reply._id]?.upvote || 0}
+                              </span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={isCommentVoting}
+                              onClick={() =>
+                                handleCommentVote(reply._id, "downvote")
+                              }
+                              className="hover:bg-transparent"
+                            >
+                              <ArrowDown
+                                size={16}
+                                className={
+                                  commentVoteStatus[reply._id]?.isDownvoted
+                                    ? "text-chart-4"
+                                    : ""
+                                }
+                              />
+                              <span>
+                                {commentVotes[reply._id]?.downvote || 0}
+                              </span>
+                            </Button>
+                          </div>
                         </Card>
                       ))}
                     </div>
@@ -482,5 +624,3 @@ const FullPost = ({ postId }) => {
 };
 
 export default FullPost;
-
-
