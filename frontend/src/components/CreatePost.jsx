@@ -66,13 +66,15 @@ const CreatePost = () => {
   };
 
   const handleSetTags = (event) => {
-    if (event.key === " " && tag.trim() !== "") {
+    if ((event.key === " " || event.nativeEvent.inputType === "insertText") && tag.trim() !== "") {
       setTags([...tags, tag.trim()]);
       setTag("");
     } else if (event.key === "Backspace" && tag === "" && tags.length > 0) {
       setTags(tags.slice(0, -1));
     }
   };
+
+
 
   const removeTag = (indexToRemove) => {
     setTags(tags.filter((_, index) => index !== indexToRemove));
