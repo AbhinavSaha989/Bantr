@@ -77,6 +77,10 @@ const Navbar = ({ onSearch }) => {
     setDarkMode(!darkMode);
   };
 
+  useEffect(() => {
+    setTheme("dark")
+  }, );
+
   return (
     <nav
       className={`p-4 shadow-md sticky top-0 z-30 bg-background transition-all duration-300 border-b` }

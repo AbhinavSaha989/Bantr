@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import useVoteStore from "@/stores/voteStore";
+import { useToast } from "@/hooks/use-toast";
 
 const PostCard = (props) => {
   const queryClient = useQueryClient();
@@ -19,6 +20,7 @@ const PostCard = (props) => {
   const { votes, voteStatus, setVotes, setVoteStatus } = useVoteStore();
 
   const postId = props.post._id;
+  const { toast } = useToast();
 
   const [isVoting, setIsVoting] = useState(false);
 
@@ -86,7 +88,10 @@ const PostCard = (props) => {
 
   const handleVote = (voteType) => {
     if (!authUser) {
-      navigate("/login");
+      toast({
+        description: "You must be logged in to vote.",
+        variant: "destructive",
+      })
       return;
     }
 
@@ -107,6 +112,10 @@ const PostCard = (props) => {
       },
       onSuccess: () => {
         invalidatePostsQuery();
+        toast({
+          title: "Success",
+          description: "Post deleted successfully",
+        })
       }
   });
 
