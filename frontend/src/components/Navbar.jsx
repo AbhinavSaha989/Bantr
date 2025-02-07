@@ -79,7 +79,7 @@ const Navbar = ({ onSearch }) => {
 
   useEffect(() => {
     setTheme("dark")
-  }, );
+  }, []);
 
   return (
     <nav
