@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowUp, ArrowDown, MessageSquare, Share2 } from "lucide-react";
 import useVoteStore from "@/stores/voteStore";
+import { useNavigate } from "react-router-dom";
 
 const FullPost = ({ postId }) => {
   const [comment, setComment] = useState("");
@@ -18,6 +19,8 @@ const FullPost = ({ postId }) => {
   const [replyFocused, setReplyFocused] = useState(false);
 
   const queryClient = useQueryClient();
+
+  const navigate = useNavigate();
 
   const { data: authUser } = useQuery({
     queryKey: ["authUser"],
