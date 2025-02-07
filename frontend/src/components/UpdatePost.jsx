@@ -1,17 +1,90 @@
-import React, {useState} from 'react'
-import { useQuery } from '@tanstack/react-query'
-const UpdatePost = ({postId}) => {
-    const [title, setTitle] = useState(`${post.title}`);
-    const [image, setImage] = useState(null);
-    const [content, setContent] = useState( `${post.content}`);
-    const [tags, setTags] = useState(post.tags);
-    const [tag, setTag] = useState("");
-    const [words, setWords] = useState(`${post.title.length}`);
+import React, {useState, useEffect} from 'react'
+import { useQuery,useMutation } from '@tanstack/react-query'
+import { axiosInstance } from '../lib/axios'
+import { Loader } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
-    const {data: post, isLoading} = useQuery({
-        queryKey: ['post', postId],
+const UpdatePost = (props) => {
+
+    const navigate = useNavigate();
+    const { toast } = useToast();
+
+    const { data: post, isLoading } = useQuery({
+        queryKey: ['postUp', props.postId],
+        queryFn: async () => {
+            const response = await axiosInstance.get(`/posts/get-post/${props.postId}`);
+            return response.data.post;
+        },
     });
 
+    const { mutate: updatePost, isLoading: updateLoading } = useMutation({
+        mutationFn: async (data) => {
+            const response = await axiosInstance.patch(`/posts/${props.postId}`, data);
+            return response.data;
+        },
+        onSuccess: () => {
+            toast({
+                title: "Success",
+                description: "Post updated successfully.",
+            })
+            navigate("/");
+        },
+        onError: (error) => {
+            toast({
+                title: "Uh oh! Something went wrong.",
+                description: error.response.data.message,
+            });
+        },
+    })
+
+    const handleUpdate = (e) => {
+        e.preventDefault();
+        const data = {
+            title,
+            content,
+            tags
+        }
+        updatePost(data);
+    }
+
+    
+
+    const [title, setTitle] = useState("");
+    const [image, setImage] = useState(null);
+    const [content, setContent] = useState("");
+    const [tags, setTags] = useState([]);
+    const [tag, setTag] = useState("");
+    const [words, setWords] = useState(0);
+
+    useEffect(() => {
+        if (post) {
+            setTitle(post.title);
+            setContent(post.content);
+            setTags(post.tags);
+            setWords(post.title.length);
+        }
+    }, [post]);
+
+    const handleSetTags = (event) => {
+      if (event.key === " " && tag.trim() !== "") {
+        setTags([...tags, tag.trim()]);
+        setTag("");
+      } else if (event.key === "Backspace" && tag === "" && tags.length > 0) {
+        setTags(tags.slice(0, -1));
+      }
+    };
+
+    const removeTag = (indexToRemove) => {
+      setTags(tags.filter((_, index) => index !== indexToRemove));
+    };
+    
     return (
       <Card className="min-h-screen w-full md:w-2/3 border mx-2 overflow-auto mt-2 flex flex-col transition-all duration-300">
         <CardContent className="p-6">
@@ -20,7 +93,7 @@ const UpdatePost = ({postId}) => {
               Update your Post
             </CardTitle>
           </CardHeader>
-          <form onSubmit={handleCreation} className="flex flex-col gap-4">
+          <form onSubmit={handleUpdate} className="flex flex-col gap-4">
             {/* Title Input with Animated Label */}
             <div className="relative">
               <Input
@@ -110,7 +183,7 @@ const UpdatePost = ({postId}) => {
               disabled={isLoading}
               className="w-[20%] self-end"
             >
-              {isLoading ? <Loader className="animate-spin" /> : "Create"}
+              {isLoading ? <Loader className="animate-spin" /> : "Update"}
             </Button>
           </form>
         </CardContent>
