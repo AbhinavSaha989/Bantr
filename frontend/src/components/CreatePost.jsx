@@ -68,6 +68,13 @@ const CreatePost = () => {
     }
   };
 
+  const addTag = () => {
+    if (tag.trim()) {
+      setTags([...tags, tag.trim()]);
+      setTag("");
+    }
+  };
+
   const removeTag = (indexToRemove) => {
     setTags(tags.filter((_, index) => index !== indexToRemove));
   };
@@ -122,6 +129,22 @@ const CreatePost = () => {
               rows={6}
               className="w-full p-3 bg-background border-input focus:ring-ring"
             />
+            {imagePreview && (
+              <div className="relative w-full flex justify-center mt-2">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-1/2 h-auto rounded-lg object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setImagePreview(null)}
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
             <label className="absolute bottom-2 right-2 cursor-pointer">
               <Image size={24} />
               <Input
@@ -132,22 +155,6 @@ const CreatePost = () => {
               />
             </label>
           </div>
-          {imagePreview && (
-            <div className="relative w-full flex justify-center mt-2">
-              <img
-                src={imagePreview}
-                alt="Preview"
-                className="w-1/2 h-auto rounded-lg object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => setImagePreview(null)}
-                className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          )}
           <div>
             <Label className="block mb-1 text-sm font-medium">Tags</Label>
             <div className="flex flex-wrap items-center gap-2">
@@ -175,6 +182,9 @@ const CreatePost = () => {
                 onKeyDown={handleSetTags}
                 className="p-2 bg-background border-input focus:ring-ring"
               />
+              <Button type="button" onClick={addTag} className="ml-2">
+                Add Tag
+              </Button>
             </div>
           </div>
           <Button

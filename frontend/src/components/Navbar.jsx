@@ -5,27 +5,22 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosInstance } from "../lib/axios";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "./ThemeProvider";
 import {
   DropdownMenu,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuContent,
 } from "@/components/ui/dropdown-menu";
-import {Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useThemeStore from "@/stores/themeStore";
 
-
 const Navbar = ({ onSearch }) => {
-  const { setTheme } = useTheme();
   const queryClient = useQueryClient();
   const [isFocused, setIsFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
- const { darkMode, setDarkMode } = useThemeStore();
-
-
+  const { darkMode, setDarkMode } = useThemeStore();
   const { toast } = useToast();
 
   const { data: authUser } = useQuery({
@@ -46,15 +41,18 @@ const Navbar = ({ onSearch }) => {
   });
 
   const handleLogout = async () => {
-    const response = await axiosInstance.get("/users/logout",{},{
-      withCredentials: true,
-    });
+    const response = await axiosInstance.get(
+      "/users/logout",
+      {},
+      {
+        withCredentials: true,
+      }
+    );
     if (response.status === 200) {
       toast({
         title: "Success",
         description: response.data.message,
       });
-      
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
     }
   };
@@ -69,24 +67,26 @@ const Navbar = ({ onSearch }) => {
   }?set=set2&size=50x50`;
 
   const toggleDarkMode = () => {
-    if (darkMode) {
-      setTheme("light");
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    if (newMode) {
+      document.documentElement.classList.add("dark");
     } else {
-      setTheme("dark");
+      document.documentElement.classList.remove("dark");
     }
-    setDarkMode(!darkMode);
   };
 
   useEffect(() => {
-    if (!sessionStorage.getItem("themeSet")) {
-      sessionStorage.setItem("themeSet", "dark");
-      setTheme("dark");
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
     }
-  }, []);
+  }, [darkMode]);
 
   return (
     <nav
-      className={`p-4 shadow-md sticky top-0 z-30 bg-background transition-all duration-300 border-b` }
+      className={`p-4 shadow-md sticky top-0 z-30 bg-background transition-all duration-300 border-b`}
     >
       <div className="container mx-auto flex items-center justify-between">
         {/* Logo and Title */}
@@ -114,18 +114,16 @@ const Navbar = ({ onSearch }) => {
               placeholder="Search"
             />
             <Search
-              className={`absolute right-3 top-1/2 transform -translate-y-1/2 transition-all duration-300
-              }`}
+              className={`absolute right-3 top-1/2 transform -translate-y-1/2 transition-all duration-300`}
               size={20}
             />
           </div>
 
           {/* Dark Mode Toggle */}
           <Button onClick={toggleDarkMode} className="p-2 size-10 rounded-full">
-            {darkMode ? <Moon size={20} /> : <Sun size={20} />}
+            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </Button>
-          {/* Fix for initial theme issue */}
-          {darkMode === null && setDarkMode(true)}
+
           {/* Login Button or Profile Dropdown */}
           <div className="relative">
             {authUser ? (
@@ -213,5 +211,3 @@ const Navbar = ({ onSearch }) => {
 };
 
 export default Navbar;
-
-
