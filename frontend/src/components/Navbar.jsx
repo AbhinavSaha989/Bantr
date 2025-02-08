@@ -79,8 +79,8 @@ const Navbar = ({ onSearch }) => {
 
   useEffect(() => {
     if (!sessionStorage.getItem("themeSet")) {
+      sessionStorage.setItem("themeSet", "dark");
       setTheme("dark");
-      sessionStorage.setItem("themeSet", "true");
     }
   }, []);
 
@@ -165,7 +165,12 @@ const Navbar = ({ onSearch }) => {
                       <span>Create</span>
                     </Link>
                   </div>
-
+                  <DropdownMenuItem
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                    onClick={() => navigate("/edit-profile")}
+                  >
+                    Edit Profile
+                  </DropdownMenuItem>
                   {/* Logout */}
                   <DropdownMenuItem
                     className="block w-full text-left px-4 py-2 hover:bg-gray-100"

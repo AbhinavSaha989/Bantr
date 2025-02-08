@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import PostCard from "./PostCard";
 import { axiosInstance } from "../lib/axios";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import PostCardSkeleton from "./skeletons/PostCardSkeleton";
 import { Card } from "@/components/ui/card";
 

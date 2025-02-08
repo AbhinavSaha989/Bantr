@@ -159,6 +159,12 @@ const PostCard = (props) => {
         <h2 className="text-2xl font-semibold break-words">
           {props.post.title}
         </h2>
+        <p className="text-sm">{props.post.content.length > 200 ? props.post.content.slice(0, 200) + "..." : props.post.content}</p>
+        {props.post.image && (
+          <div className="flex justify-center items-center h-[35vh] w-full overflow-hidden bg-transparent">
+            <img src={props.post.image} className="w-full" alt="" />
+          </div>
+        )}
         <div className="flex gap-2 flex-wrap">
           {props.post.tags.map((tag, index) => (
             <div

@@ -12,6 +12,7 @@ import Update from './pages/Update'
 import LoadingScreen from './components/LoadingScreen'
 import { ThemeProvider } from './components/ThemeProvider'
 import { Toaster } from "@/components/ui/toaster";
+import EditProfile from './pages/EditProfile'
 
 const App = () => {
   const {data: authUser, isLoading} = useQuery({
@@ -62,6 +63,7 @@ const App = () => {
           path={`update/:postId`}
           element={authUser ? <Update /> : <Navigate to="/" />}
         />
+        <Route path="/edit-profile" element={authUser ? <EditProfile /> : <Navigate to="/" />} />
       </Routes>
       <Toaster />
     </ThemeProvider>
