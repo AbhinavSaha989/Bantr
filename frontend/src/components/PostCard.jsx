@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ArrowUp, ArrowDown, MessageSquare, Share2, Trash } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosInstance } from "../lib/axios";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, set } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Card } from "@/components/ui/card";
@@ -71,19 +71,12 @@ const PostCard = (props) => {
         votes[postId].upvote + (isUpvote ? (action === "add" ? 1 : -1) : 0),
         votes[postId].downvote + (!isUpvote ? (action === "add" ? 1 : -1) : 0)
       );
-
-      toast.success(
-        `${voteType === "upvote" ? "Upvoted" : "Downvoted"} successfully`
-      );
-    },
-    onError: (error) => {
-      toast.error(
-        error.response?.data?.message || "An error occurred while voting."
-      );
-    },
-    onSettled: () => {
       setIsVoting(false);
     },
+    onError: (error) => {
+      setIsVoting(false);
+    },
+    
   });
 
   const handleVote = (voteType) => {

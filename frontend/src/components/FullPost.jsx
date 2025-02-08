@@ -154,10 +154,6 @@ const FullPost = ({ postId }) => {
         votes[postId].upvote + (isUpvote ? (action === "add" ? 1 : -1) : 0),
         votes[postId].downvote + (!isUpvote ? (action === "add" ? 1 : -1) : 0)
       );
-
-      toast.success(
-        `${voteType === "upvote" ? "Upvoted" : "Downvoted"} successfully`
-      );
       setIsVoting(false);
     },
     onError: () => {

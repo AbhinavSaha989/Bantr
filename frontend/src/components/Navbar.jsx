@@ -78,7 +78,10 @@ const Navbar = ({ onSearch }) => {
   };
 
   useEffect(() => {
-    setTheme("dark")
+    if (!sessionStorage.getItem("themeSet")) {
+      setTheme("dark");
+      sessionStorage.setItem("themeSet", "true");
+    }
   }, []);
 
   return (
