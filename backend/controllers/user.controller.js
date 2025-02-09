@@ -122,6 +122,40 @@ const signupUser = async (req, res) => {
   }
 };
 
+const editUser = async (req, res) => {
+  try {
+    const {profilePic} = req.body;
+    const userId = req.user._id;
+
+    if(!profilePic){
+      console.log("All fields are required");
+      
+      return res.status(400).json({
+        message: "All fields are required",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if(!user){
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, {profilePic}, {new: true});
+    res.status(200).json({
+      message: "User updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+    
+  }
+};
+
 const getUser = async (req, res) => {
   try {
     res.status(200).json(req.user);
@@ -133,4 +167,4 @@ const getUser = async (req, res) => {
   }
 };
 
-export { loginUser, signupUser, logoutUser, getUser };
+export { loginUser, signupUser, logoutUser, editUser, getUser };

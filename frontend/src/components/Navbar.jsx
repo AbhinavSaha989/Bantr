@@ -131,7 +131,7 @@ const Navbar = ({ onSearch }) => {
                 <DropdownMenuTrigger asChild>
                   <Button className="flex items-center px-1 py-1 rounded-full hover:bg-gray-700 focus:outline-none bg-inherit">
                     <Avatar className="size-8">
-                      <AvatarImage src={randomAvatarUrl} />
+                      <AvatarImage src={user?.profilePic} />
                       <AvatarFallback>CN</AvatarFallback>
                     </Avatar>
                   </Button>
@@ -144,7 +144,7 @@ const Navbar = ({ onSearch }) => {
                   >
                     <div className="flex items-center mb-1">
                       <img
-                        src={randomAvatarUrl}
+                        src={user?.profilePic}
                         alt="User Avatar"
                         className="w-6 h-6 rounded-full mr-2"
                       />
