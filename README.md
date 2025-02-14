@@ -1,6 +1,10 @@
 ## App Overview
 
-This application is a social media platform designed to allow users to create, view, and interact with posts. It features user authentication, post creation, comment functionality, and trending searches.
+Bantr is a social media platform designed to allow users to create, view, and interact with posts. It features user authentication, post creation, comment functionality, trending searches, and user profiles.
+
+/*************  ✨ Codeium Command ⭐  *************/
+![Bantr Screenshot](/frontend/public/Bantr.png)
+/******  146ceadc-e4e4-4119-9808-6fc0950f57fe  *******/
 
 ## Technologies Used
 
@@ -36,6 +40,10 @@ This application is a social media platform designed to allow users to create, v
 
 - **Trending Searches:**
   - Displays trending topics based on user activity.
+
+- **User Profiles:**
+  - Users can view their own profile and edit their information.
+  - Users can view other users' profiles and see their posts.
 
 - **Responsive Design:** 
   - The application is designed to be responsive across various device sizes.

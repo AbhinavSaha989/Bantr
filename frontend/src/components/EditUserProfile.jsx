@@ -28,6 +28,7 @@ const EditUserProfile = () => {
         title: "Success",
         description: "Profile updated successfully",
       });
+      setAvatar("");
     },
     onError: (error) => {
       console.error("Error updating profile:", error);
@@ -35,6 +36,7 @@ const EditUserProfile = () => {
         title: "Error",
         description: "Failed to update profile",
       });
+      setAvatar("");
     },
   });
 
