@@ -2,9 +2,7 @@
 
 Bantr is a social media platform designed to allow users to create, view, and interact with posts. It features user authentication, post creation, comment functionality, trending searches, and user profiles.
 
-/*************  ✨ Codeium Command ⭐  *************/
 ![Bantr Screenshot](/frontend/public/Bantr.png)
-/******  146ceadc-e4e4-4119-9808-6fc0950f57fe  *******/
 
 ## Technologies Used
 
