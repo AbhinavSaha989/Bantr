@@ -429,7 +429,7 @@ const FullPost = ({ postId }) => {
                 <div className="flex items-center gap-4 mb-3">
                   <Avatar>
                     <AvatarImage
-                      src={`https://robohash.org/${comment.commenter.username}?set=set2&size=50x50`}
+                      src={comment.commenter.profilePic}
                       alt="Profile"
                       className="w-12 h-12 rounded-full border border-muted"
                     />
