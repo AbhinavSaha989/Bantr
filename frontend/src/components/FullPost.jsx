@@ -374,7 +374,7 @@ const FullPost = ({ postId }) => {
         <Card className="w-full p-4 bg-card rounded-lg shadow-md flex gap-2">
           <Avatar>
             <AvatarImage
-              src={`https://robohash.org/${postFetch.author.username}?set=set2&size=50x50`}
+              src={authUser.profilePic}
               alt="Profile"
               className="w-12 rounded-full border border-muted"
             />
