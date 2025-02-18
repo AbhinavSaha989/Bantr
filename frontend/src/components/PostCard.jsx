@@ -28,7 +28,6 @@ const PostCard = (props) => {
     props.post.author || "default"
   }?set=set2&size=50x50`;
 
-  // Initialize vote state from post data
   useEffect(() => {
     if (authUser) {
       setVoteStatus(
@@ -131,7 +130,7 @@ const PostCard = (props) => {
             }}
           >
             <Avatar>
-              <AvatarImage src={randomAvatarUrl || "/placeholder.svg"} />
+              <AvatarImage src={props.post.author.profilePic} />
             </Avatar>
             <p>{props.post.author.username}</p>
           </div>

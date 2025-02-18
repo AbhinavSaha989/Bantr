@@ -287,7 +287,7 @@ const FullPost = ({ postId }) => {
           <div className="flex items-center gap-4 mb-4">
             <Avatar>
               <AvatarImage
-                src={`https://robohash.org/${postFetch.author.username}?set=set2&size=50x50`}
+                src={postFetch.author.profilePic}
                 alt="Profile"
                 className="size-9 rounded-full border-2 border-muted"
               />
