@@ -1,10 +1,11 @@
 import Post from "../models/post.model.js";
 import Comment from "../models/comment.model.js";
 import mongoose from "mongoose";
+import cloudinary from "../lib/cloudinary.js";
 
 export const createPost = async (req, res) => {
   try {
-    const { title, content, tags } = req.body;
+    const { title, content,image, tags } = req.body;
 
     if (!title || title.trim() === "") {
       return res.status(400).json({
@@ -12,17 +13,30 @@ export const createPost = async (req, res) => {
       });
     }
 
-    if (!tags || tags.length > 10) {
+    if (!tags || tags.length > 10 || tags.length === 0) {
       return res.status(400).json({
         message: "Tags condition not satisfied",
       });
     }
-    const newPost = new Post({
+    let newPost;
+
+    if (image) {
+      const result = await cloudinary.uploader.upload(image);
+       newPost = new Post({
+      title,
+      author: req.user._id,
+      content,
+      image: result.secure_url,
+      tags,
+    });
+  } else {
+     newPost = new Post({
       title,
       author: req.user._id,
       content,
       tags,
     });
+  }
 
     const savedPost = await newPost.save();
 
@@ -69,7 +83,12 @@ export const deletePost = async (req, res) => {
         message: "Unauthorized",
       });
     }
-    console.log(post);
+
+    if (post.image) {
+      await cloudinary.uploader.destroy(
+        post.image.split("/").pop().split(".")[0]
+      );
+    }
 
     await Comment.deleteMany({ parentPost: postId });
     await Post.findByIdAndDelete(postId);
@@ -87,7 +106,7 @@ export const deletePost = async (req, res) => {
 
 export const updatePost = async (req, res) => {
   try {
-    const { title, content } = req.body;
+    const { title, content,image, tags } = req.body;
 
     const postId = req.params.postId;
 
@@ -113,9 +132,15 @@ export const updatePost = async (req, res) => {
       });
     }
 
+    if (image && post.image) {
+      await cloudinary.uploader.destroy(
+        post.image.split("/").pop().split(".")[0]
+      );
+    }
+
     const updatePost = await Post.findByIdAndUpdate(
       postId,
-      { title, content },
+      { title, content, image, tags },
       { new: true }
     );
 
@@ -177,6 +202,9 @@ export const getPost = async (req, res) => {
 export const getAllPostsbyUser = async (req, res) => {
   try {
     const userId = req.params.userId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
 
     if (!userId) {
       return res.status(400).json({
@@ -197,7 +225,10 @@ export const getAllPostsbyUser = async (req, res) => {
           path: "commenter",
           select: "username profilePic",
         },
-      });
+      })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
 
     if (!posts) {
       return res.status(404).json({
@@ -205,38 +236,7 @@ export const getAllPostsbyUser = async (req, res) => {
       });
     }
 
-    res.status(200).json({
-      message: "Posts fetched successfully",
-      posts,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Server error",
-    });
-  }
-};
-export const getAllPosts = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1; 
-    const limit = parseInt(req.query.limit) || 5; 
-    const skip = (page - 1) * limit;
-
-    const posts = await Post.find()
-      .populate("author", "username profilePic")
-      .populate({
-        path: "comments",
-        select: "commentContent commenter",
-        populate: {
-          path: "commenter",
-          select: "username profilePic",
-        },
-      })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const totalPosts = await Post.countDocuments();
+    const totalPosts = await Post.countDocuments({ author: userId });
 
     res.status(200).json({
       message: "Posts fetched successfully",
@@ -253,7 +253,52 @@ export const getAllPosts = async (req, res) => {
     });
   }
 };
+export const getAllPosts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
 
+    // Get tags from query, if any
+    const tags = req.query.tags ? req.query.tags.split(",") : [];
+
+    let query = {};
+    if (tags.length > 0) {
+      const tagPatterns = tags.map((tag) => new RegExp(tag.trim(), "i"));
+      query = { tags: { $all: tagPatterns } };
+    }
+
+    const posts = await Post.find(query)
+      .populate("author", "username profilePic")
+      .populate({
+        path: "comments",
+        select: "commentContent commenter",
+        populate: {
+          path: "commenter",
+          select: "username profilePic",
+        },
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPosts = await Post.countDocuments(query);
+
+    res.status(200).json({
+      message: "Posts fetched successfully",
+      posts,
+      totalPosts,
+      currentPage: page,
+      totalPages: Math.ceil(totalPosts / limit),
+      isLastPage: page * limit >= totalPosts,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
 
 export const getSearchResult = async (req, res) => {
   try {
@@ -268,7 +313,7 @@ export const getSearchResult = async (req, res) => {
       });
     }
 
-    const tags = tagQuery.split(/\s+/); // group pe photo hai wo dekho
+    const tags = tagQuery.split(/\s+/); 
 
     const regexSearch = tags.map((tag) => ({
       tags: { $regex: tag, $options: "i" },
@@ -558,7 +603,6 @@ export const downvoteCount = async (req, res) => {
   }
 };
 
-
 export const getMostPopularTags = async (req, res) => {
   try {
     const tags = await Post.aggregate([
@@ -576,7 +620,7 @@ export const getMostPopularTags = async (req, res) => {
     res.status(200).json({
       message: "Most popular tags fetched successfully",
       tags,
-    })
+    });
   } catch (error) {
     console.log(error);
 
@@ -584,4 +628,4 @@ export const getMostPopularTags = async (req, res) => {
       message: "Server error",
     });
   }
-}
+};

@@ -1,17 +1,26 @@
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { toast } from "react-hot-toast";
+import { useToast } from "@/hooks/use-toast";
 import { axiosInstance } from "../lib/axios";
 import { useNavigate } from "react-router-dom";
-import { Loader } from "lucide-react";
+import { Image, Loader, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const CreatePost = () => {
   const [title, setTitle] = useState("");
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [content, setContent] = useState("");
   const [tags, setTags] = useState([]);
   const [tag, setTag] = useState("");
   const [words, setWords] = useState(0);
 
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -20,27 +29,38 @@ const CreatePost = () => {
       const response = await axiosInstance.post("/posts", data);
       return response.data;
     },
-    onSuccess: (data) => {
-      toast.success(data.message);
+    onSuccess: () => {
+      toast({ title: "Success", description: "Post created successfully." });
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       navigate("/");
     },
     onError: (error) => {
-      toast.error(error.response.data.message || "An error occurred.");
+      toast({ title: "Uh oh!", description: error.response.data.message });
     },
   });
 
   const handleCreation = (event) => {
     event.preventDefault();
-    if (!title || !content) {
-      toast.error("Title and Content are required.");
+    if (!title || !content || tags.length === 0) {
+      toast({ title: "Error", description: "Please fill in all fields." });
       return;
     }
-    createPost({ title, content, tags });
+    const postData = { title, content, tags };
+    if (image) {
+      readFileAsDataURL(image).then((dataUrl) => {
+        postData.image = dataUrl;
+        createPost(postData);
+      });
+    } else {
+      createPost(postData);
+    }
   };
 
   const handleSetTags = (event) => {
-    if (event.key === " " && tag.trim() !== "") {
+    if (
+      (event.key === " " || event.nativeEvent.inputType === "insertText") &&
+      tag.trim()
+    ) {
       setTags([...tags, tag.trim()]);
       setTag("");
     } else if (event.key === "Backspace" && tag === "" && tags.length > 0) {
@@ -48,101 +68,135 @@ const CreatePost = () => {
     }
   };
 
+  const addTag = () => {
+    if (tag.trim()) {
+      setTags([...tags, tag.trim()]);
+      setTag("");
+    }
+  };
+
   const removeTag = (indexToRemove) => {
     setTags(tags.filter((_, index) => index !== indexToRemove));
   };
 
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    setImage(file);
+    if (file) {
+      readFileAsDataURL(file).then(setImagePreview);
+    } else {
+      setImagePreview(null);
+    }
+  };
+
+  const readFileAsDataURL = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   return (
-    <section className="min-h-screen w-full md:w-2/3 mx-auto  text-white py-8 px-4 bg-black backdrop-blur-md bg-opacity-30 border border-gray-300 mt-2">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Create a Post</h1>
+    <Card className="min-h-screen w-full md:w-2/3 border mx-2 overflow-auto mt-2 flex flex-col transition-all duration-300">
+      <CardContent className="p-6">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold mb-4">
+            Create a Post
+          </CardTitle>
+        </CardHeader>
         <form onSubmit={handleCreation} className="flex flex-col gap-4">
-          {/* Title Input with Animated Label */}
           <div className="relative">
-            <input
-              id="title"
+            <Input
               type="text"
-              placeholder=" "
+              placeholder="Title"
               value={title}
               maxLength={300}
               onChange={(e) => {
                 setTitle(e.target.value);
                 setWords(e.target.value.length);
               }}
-              className="w-full p-3 bg-transparent border border-gray-300 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 peer"
+              className="w-full p-7 bg-background border-input focus:ring-ring"
             />
-            <label
-              htmlFor="title"
-              className={`absolute left-3 top-3 text-sm text-gray-400 transition-all duration-300 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:text-gray-500 peer-focus:translate-y-[-12px] peer-focus:text-blue-400 peer-focus:text-[0.6rem]`}
-            >
-              Title
-            </label>
           </div>
-          <div className="flex items-center gap-2 justify-end">
-            <p className="text-sm font-medium ">{words}/300</p>
-          </div>
-
-          {/* Content Input */}
-          <div>
-            <label htmlFor="content" className="block mb-1 text-sm font-medium">
-              Content
-            </label>
-            <textarea
-              id="content"
+          <p className="text-sm font-medium self-end">{words}/300</p>
+          <div className="relative">
+            <Textarea
               placeholder="What do you want to talk about?"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              rows="6"
-              className="w-full p-3 bg-transparent border border-gray-300 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            ></textarea>
-          </div>
-
-          {/* Tags Input */}
-          <div>
-            <label htmlFor="tags" className="block mb-1 text-sm font-medium">
-              Tags
+              rows={6}
+              className="w-full p-3 bg-background border-input focus:ring-ring"
+            />
+            {imagePreview && (
+              <div className="relative w-full flex justify-center mt-2">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-1/2 h-auto rounded-lg object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setImagePreview(null)}
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+            <label className="absolute bottom-2 right-2 cursor-pointer">
+              <Image size={24} />
+              <Input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageChange}
+              />
             </label>
+          </div>
+          <div>
+            <Label className="block mb-1 text-sm font-medium">Tags</Label>
             <div className="flex flex-wrap items-center gap-2">
               {tags.map((t, index) => (
-                <div
+                <Badge
                   key={index}
-                  className="flex items-center justify-between gap-3 px-3 py-1 bg-transparent border border-gray-300 text-white rounded-full text-sm font-medium"
+                  variant="outline"
+                  className="flex items-center gap-3 px-3 py-1 text-sm font-medium"
                 >
                   {t}
                   <button
                     type="button"
                     onClick={() => removeTag(index)}
-                    className="text-white  rounded-full w-4 h-4 flex items-center justify-center"
+                    className="rounded-full w-4 h-4 flex items-center justify-center"
                   >
                     ×
                   </button>
-                </div>
+                </Badge>
               ))}
-              <input
-                id="tags"
+              <Input
                 type="text"
                 placeholder="Add a tag"
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
                 onKeyDown={handleSetTags}
-                className="p-2 bg-transparent border border-gray-300 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="p-2 bg-background border-input focus:ring-ring"
               />
+              <Button type="button" onClick={addTag} className="ml-2">
+                Add Tag
+              </Button>
             </div>
-            <p className="text-sm font-thin mt-3">Add tags using a space</p>
           </div>
-
-          <button
+          <Button
             type="submit"
             disabled={isLoading}
-            className={`w-[20%] p-3 rounded-lg font-medium flex items-center justify-center self-end text-white border border-gray-300 ${
-              isLoading ? "bg-gray-600 cursor-not-allowed" : ""
-            }`}
+            className="w-[20%] self-end"
           >
-            {isLoading ? <Loader className="animate-spin" /> : "Create Post"}
-          </button>
+            {isLoading ? <Loader className="animate-spin" /> : "Create"}
+          </Button>
         </form>
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 };
 

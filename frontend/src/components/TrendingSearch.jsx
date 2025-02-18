@@ -1,14 +1,26 @@
-import React, { useState } from "react";
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { axiosInstance } from "../lib/axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 
-const TrendingSearch = () => {
-  const [selectedTag, setSelectedTag] = useState(""); // Track the selected tag
+const TrendingSearch = ({ onTagClick }) => {
+  const [selectedTags, setSelectedTags] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Fetch trending tags
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tagsFromUrl = params.get("tags");
+    if (tagsFromUrl) {
+      setSelectedTags(tagsFromUrl.split(","));
+    }
+  }, [location.search]);
+
   const { data: trendingTags, isLoading: tagsLoading } = useQuery({
     queryKey: ["trendingTags"],
     queryFn: async () => {
@@ -21,32 +33,59 @@ const TrendingSearch = () => {
     },
   });
 
-  // Fetch posts by tag
-
-  // Handle tag click
   const handleTagClick = (tag) => {
-    setSelectedTag(tag); // Update selected tag
-    navigate(`/search?tag=${tag}`); // Navigate to search page
+    setSelectedTags((prevTags) => {
+      const updatedTags = prevTags.includes(tag)
+        ? prevTags.filter((t) => t !== tag)
+        : [...prevTags, tag];
+
+      navigate(`/?tags=${updatedTags.join(",")}`);
+      onTagClick(updatedTags.join(","));
+      return updatedTags;
+    });
+  };
+
+  const handleClearSearch = () => {
+    setSelectedTags([]);
+    onTagClick("");
+    navigate(`/`);
   };
 
   return (
-    <section className="h-[50vh] md:w-1/3 bg-slate-900 backdrop-blur-md bg-opacity-30 border border-gray-300 mx-2 hidden md:block sticky top-0 mt-2">
-      {tagsLoading ? (
-        <p>Loading tags...</p>
-      ) : trendingTags ? (
-        trendingTags.tags.map((tag) => (
-          <p
-            key={tag._id}
-            onClick={() => handleTagClick(tag._id)}
-            className="p-2 hover:bg-slate-800 cursor-pointer"
-          >
-            {tag._id}
-          </p>
-        ))
-      ) : (
-        <p>No Tags to be Found</p>
-      )}
-    </section>
+    <Card className="h-[calc(100vh-90px)] md:w-1/3 mx-2 hidden md:block sticky top-[64px] mt-2 shadow-lg">
+      <div className="p-4 flex justify-between items-center">
+        <h2 className="text-lg font-semibold uppercase tracking-wide">
+          Trending Tags
+        </h2>
+        {selectedTags.length > 0 && (
+          <Button onClick={handleClearSearch} size="sm" variant="secondary">
+            Clear
+          </Button>
+        )}
+      </div>
+      <Separator />
+      <div className="p-4 space-y-2">
+        {tagsLoading ? (
+          <Skeleton className="h-6 w-32" />
+        ) : trendingTags ? (
+          trendingTags.tags.map((tag) => (
+            <p
+              key={tag._id}
+              onClick={() => handleTagClick(tag._id)}
+              className={`p-2 rounded-md cursor-pointer transition-all duration-300 text-sm font-medium ${
+                selectedTags.includes(tag._id)
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-muted"
+              }`}
+            >
+              #{tag._id}
+            </p>
+          ))
+        ) : (
+          <p className="text-muted-foreground">No Tags to be Found</p>
+        )}
+      </div>
+    </Card>
   );
 };
 

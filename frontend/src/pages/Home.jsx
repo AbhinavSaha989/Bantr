@@ -1,5 +1,4 @@
-import React, {useEffect} from 'react'
-import {axiosInstance} from '../lib/axios'
+import React,{useState} from 'react'
 import Navbar from '../components/Navbar'
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import PostsSection from '../components/PostsSection';
@@ -9,16 +8,17 @@ import { useNavigate} from 'react-router-dom'
 
 const Home = () => {
 
- 
+  const [searchTags, setSearchTags] = useState("");
+
   return (
     <main>
-      <Navbar />
+      <Navbar onSearch={setSearchTags}/>
       <div className="flex">
         {/* Scrollable Section */}
-        <PostsSection />
+        <PostsSection searchTags={searchTags}/>
 
         {/* Fixed Section */}
-        <TrendingSearch />
+        <TrendingSearch onTagClick={setSearchTags}/>
       </div>
     </main>
   );

@@ -161,7 +161,16 @@ export const getAllComments = async (req, res) => {
         path: "commenter",
         select: "username profilePic",
       },
-    });
+    }).populate({
+      path: "comments",
+      populate: {
+        path: "replies",
+        populate: {
+          path: "commenter",
+          select: "username profilePic",
+        },
+      },
+    })
     if (!post) {
       return res.status(404).json({
         message: "Post not found",
